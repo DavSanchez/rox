@@ -272,6 +272,10 @@
               # Inherit inputs from checks.
               inherit (self') checks;
 
+              shellHook = ''
+                ${config.pre-commit.installationScript}
+              '';
+
               # Additional dev-shell environment variables can be set directly
               # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
 
