@@ -6,7 +6,7 @@
 
 This is my implementation of the bytecode virtual machine for Lox, written in Rust and following (where possible) the C original from the book [Crafting Interpreters](https://www.craftinginterpreters.com) by Robert Nystrom.
 
-- [ ] Chapter 14: Chunks of Bytecode
+- [x] Chapter 14: Chunks of Bytecode
 - [ ] Chapter 15: A Virtual Machine
 - [ ] Chapter 16: Scanning on Demand
 - [ ] Chapter 17: Compiling Expressions
