@@ -1,5 +1,6 @@
 # Nix artifacts
 result*
+.pre-commit-config.yaml
 
 ### direnv ###
 .direnv
