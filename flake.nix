@@ -60,91 +60,18 @@
           }:
           let
             inherit (pkgs) lib;
-            crafting-interpreters-tests = pkgs.writeShellApplication {
-              name = "run-crafting-interpreters-tests";
-
-              runtimeInputs = [
-                inputs.oldDartNixpkgs.legacyPackages.${system}.dart
-                pkgs.gnumake
-                pkgs.uutils-coreutils-noprefix
+            crafting-interpreters-tests = pkgs.writers.writeNuBin "crafting-interpreters-tests" {
+              makeWrapperArgs = [
+                "--prefix"
+                "PATH"
+                ":"
+                "${lib.makeBinPath [
+                  inputs.oldDartNixpkgs.legacyPackages.${system}.dart
+                  pkgs.gnumake
+                  pkgs.uutils-coreutils-noprefix
+                ]}"
               ];
-
-              text = ''
-                # Mappings from chapter number to test suite name.
-                declare -A chapter_map
-                chapter_map["14"]="chap14_chunks"
-                chapter_map["15"]="chap15_virtual"
-                chapter_map["16"]="chap16_scanning"
-                chapter_map["17"]="chap17_compiling"
-                chapter_map["18"]="chap18_types"
-                chapter_map["19"]="chap19_strings"
-                chapter_map["20"]="chap20_hash"
-                chapter_map["21"]="chap21_global"
-                chapter_map["22"]="chap22_local"
-                chapter_map["23"]="chap23_jumping"
-                chapter_map["24"]="chap24_calls"
-                chapter_map["25"]="chap25_closures"
-                chapter_map["26"]="chap26_garbage"
-                chapter_map["27"]="chap27_classes"
-                chapter_map["28"]="chap28_methods"
-                chapter_map["29"]="chap29_superclasses"
-                chapter_map["30"]="chap30_optimization"
-
-                # Ordered chapters for default execution
-                ordered_chapters=(
-                  "chap14_chunks"
-                  "chap15_virtual"
-                  "chap16_scanning"
-                  "chap17_compiling"
-                  "chap18_types"
-                  "chap19_strings"
-                  "chap20_hash"
-                  "chap21_global"
-                  "chap22_local"
-                  "chap23_jumping"
-                  "chap24_calls"
-                  "chap25_closures"
-                  "chap26_garbage"
-                  "chap27_classes"
-                  "chap28_methods"
-                  "chap29_superclasses"
-                  "chap30_optimization"
-                )
-
-                targets=()
-                if [ "$#" -eq 0 ]; then
-                  targets=("''${ordered_chapters[@]}")
-                else
-                  for arg in "$@"; do
-                    val="''${chapter_map[$arg]:-}"
-                    if [ -n "$val" ]; then
-                      targets+=("$val")
-                    else
-                      echo "Error: Invalid chapter number provided: $arg"
-                      exit 1
-                    fi
-                  done
-                fi
-
-                tmp_dir=$(mktemp -d)
-                # Cleanup on exit
-                trap 'rm -rf "$tmp_dir"' EXIT
-
-                echo "Copying ${inputs.crafting-interpreters} to temporary directory $tmp_dir..."
-                cp --no-preserve=all -r "${inputs.crafting-interpreters}/." "$tmp_dir"
-
-                cd "$tmp_dir/tool"
-                dart pub get
-                cd "$tmp_dir"
-
-                for target in "''${targets[@]}"; do
-                  echo "--------------------------------------------------------------------------------"
-                  echo "Running $target..."
-                  echo "--------------------------------------------------------------------------------"
-                  dart tool/bin/test.dart "$target" --interpreter "${lib.getExe rox}" --arguments "--$target"
-                done
-              '';
-            };
+            } (lib.readFile ./scripts/test_runner.nu);
             rustToolchain = inputs'.fenix.packages.latest.toolchain;
             craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
             src = craneLib.cleanCargoSource ./.;
