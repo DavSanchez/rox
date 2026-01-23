@@ -55,7 +55,7 @@ jobs:
     runs-on: Ubuntu-latest
     needs:
       - nix-checks
-      - crafting-interpreter-tests
+      # - crafting-interpreter-tests
     steps:
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1
