@@ -1,5 +1,5 @@
 {
-  description = "My implementations of Lox, a programming language from the book 'Crafting Interpreters' by Robert Nystrom, as a bytecode virtual machine";
+  description = "Rox: my implementations of Lox, a programming language from the book 'Crafting Interpreters' by Robert Nystrom, as a bytecode virtual machine written in Rust";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
