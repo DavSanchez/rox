@@ -6,9 +6,6 @@ def main [
     ...chapters: string
 ] {
     let chapter_map = {
-        "14": "chap14_chunks",
-        "15": "chap15_virtual",
-        "16": "chap16_scanning",
         "17": "chap17_compiling",
         "18": "chap18_types",
         "19": "chap19_strings",
@@ -26,9 +23,6 @@ def main [
     }
 
     let ordered_chapters = [
-        "chap14_chunks",
-        "chap15_virtual",
-        "chap16_scanning",
         "chap17_compiling",
         "chap18_types",
         "chap19_strings",
@@ -63,9 +57,9 @@ def main [
     # We use a try/catch pattern for cleanup
     try {
         print $"Copying ($test_suite) to temporary directory ($tmp_dir)..."
-        # Use external cp to handle permissions better (coreutils)
-        cp -r $"($test_suite)/." $tmp_dir
-        
+        # Use external cp (still uutils-coreutils) to handle nix store permissions
+        ^cp -r $"($test_suite)/." $tmp_dir
+
         # Ensure we can write to the directory (files from nix store are read-only)
         chmod -R u+w $tmp_dir
 
@@ -77,15 +71,17 @@ def main [
             print "--------------------------------------------------------------------------------"
             print $"Running ($target)..."
             print "--------------------------------------------------------------------------------"
-            
+
             dart tool/bin/test.dart $target --interpreter $interpreter --arguments $"--($target)"
         }
     } catch {|err| 
+        print $err.rendered
         # Cleanup before exiting with error
+        cd
         rm -rf $tmp_dir
-        error make {msg: ($err.msg)}
     }
     
     # Cleanup on success
+    cd
     rm -rf $tmp_dir
 }

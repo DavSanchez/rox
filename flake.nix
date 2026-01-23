@@ -62,6 +62,10 @@
             inherit (pkgs) lib;
             crafting-interpreters-tests = pkgs.writers.writeNuBin "crafting-interpreters-tests" {
               makeWrapperArgs = [
+                "--add-flags"
+                "--test-suite=${inputs.crafting-interpreters}"
+                "--add-flags"
+                "--interpreter=${lib.getExe' rox "rox"}"
                 "--prefix"
                 "PATH"
                 ":"
@@ -186,7 +190,7 @@
             apps = {
               default = {
                 type = "app";
-                program = lib.getExe rox;
+                program = lib.getExe' rox "rox";
               };
               rox-crafting-interpreters-tests = {
                 type = "app";
