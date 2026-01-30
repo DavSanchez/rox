@@ -1,3 +1,10 @@
+mod chunk;
+
+use chunk::{ByteCodeChunk, OpCode};
+
 fn main() {
-    println!("Hello, world!");
+    let mut chunk = ByteCodeChunk::new();
+    chunk.push(OpCode::Return);
+
+    chunk.disassemble("test chunk");
 }
