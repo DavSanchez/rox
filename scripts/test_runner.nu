@@ -60,7 +60,7 @@ def main [
         # Use external cp (still uutils-coreutils) to handle nix store permissions
         ^cp -r $"($test_suite)/." $tmp_dir
 
-        # Ensure we can write to the directory (files from nix store are read-only)
+        # Ensure we can write to the directory (files copied from the nix store are read-only)
         chmod -R u+w $tmp_dir
 
         cd $"($tmp_dir)/tool"
