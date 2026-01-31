@@ -1,5 +1,6 @@
 use std::{
     alloc::{self, Layout},
+    ops::Index,
     ptr::{self, NonNull},
 };
 
@@ -7,11 +8,11 @@ use std::{
 pub struct Array<T> {
     length: usize,
     capacity: usize,
-    pub(super) ptr: NonNull<T>, // TODO remove pub(super) once we don't want to "disassemble"
+    ptr: NonNull<T>,
 }
 
 impl<T> Array<T> {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             length: 0,
             capacity: 0,
@@ -19,7 +20,7 @@ impl<T> Array<T> {
         }
     }
 
-    pub fn push(&mut self, byte: T) {
+    pub(super) fn push(&mut self, byte: T) {
         if self.length == self.capacity {
             self.grow();
         }
@@ -30,7 +31,7 @@ impl<T> Array<T> {
         self.length += 1;
     }
 
-    pub fn pop(&mut self) -> Option<T> {
+    fn pop(&mut self) -> Option<T> {
         if self.length == 0 {
             None
         } else {
@@ -39,7 +40,7 @@ impl<T> Array<T> {
         }
     }
 
-    pub fn length(&self) -> usize {
+    pub(super) fn count(&self) -> usize {
         self.length
     }
 
@@ -69,6 +70,16 @@ impl<T> Array<T> {
             None => alloc::handle_alloc_error(new_layout),
         };
         self.capacity = new_capacity;
+    }
+}
+
+impl<T> Index<usize> for Array<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        assert!(index < self.length, "Index out of bounds");
+        // We do not use `ptr::read` here because we want to return a reference.
+        unsafe { &*self.ptr.as_ptr().add(index) }
     }
 }
 
