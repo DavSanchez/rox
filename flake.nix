@@ -175,6 +175,7 @@
               default = {
                 type = "app";
                 program = lib.getExe' rox "rox";
+                meta.description = "Rox bytecode VM - run with 'nix run .#rox -- [args...]'";
               };
               rox-crafting-interpreters-tests =
                 let
@@ -221,6 +222,12 @@
 
             pre-commit = {
               settings = {
+                # `nix flake check` runs in a pure environment, so clippy and cargo can't access
+                # to anything that's not tracked by git and can't fetch dependencies from the net.
+                # This addresses that by providing the cargo dependencies directly.
+                settings.rust.check.cargoDeps = pkgs.rustPlatform.importCargoLock {
+                  lockFile = ./Cargo.lock;
+                };
                 hooks = {
                   # Formatters
                   treefmt = {
