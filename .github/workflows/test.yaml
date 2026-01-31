@@ -28,12 +28,13 @@ jobs:
         run: nix flake check -L
 
   crafting-interpreter-tests:
+    if: ${{ !always() }} # Disabled until chapter 17
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false # for knowing the results of other matrix checks even if some fail
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
-        test-chapter: ["14"]
+        test-chapter: ["17"]
     name: ⚙️ Crafting Interpreters tests (Chapter ${{ matrix.test-chapter }}, ${{ matrix.os }})
     steps:
       - uses: actions/checkout@v6
@@ -54,7 +55,7 @@ jobs:
     runs-on: Ubuntu-latest
     needs:
       - nix-checks
-      - crafting-interpreter-tests
+      # - crafting-interpreter-tests
     steps:
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1

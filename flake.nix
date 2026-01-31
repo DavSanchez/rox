@@ -1,5 +1,5 @@
 {
-  description = "My implementations of Lox, a programming language from the book 'Crafting Interpreters' by Robert Nystrom, as a bytecode virtual machine";
+  description = "Rox: my implementations of Lox, a programming language from the book 'Crafting Interpreters' by Robert Nystrom, as a bytecode virtual machine written in Rust";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -60,18 +60,6 @@
           }:
           let
             inherit (pkgs) lib;
-            crafting-interpreters-tests = pkgs.writers.writeNuBin "crafting-interpreters-tests" {
-              makeWrapperArgs = [
-                "--prefix"
-                "PATH"
-                ":"
-                "${lib.makeBinPath [
-                  inputs.oldDartNixpkgs.legacyPackages.${system}.dart
-                  pkgs.gnumake
-                  pkgs.uutils-coreutils-noprefix
-                ]}"
-              ];
-            } (lib.readFile ./scripts/test_runner.nu);
             rustToolchain = inputs'.fenix.packages.latest.toolchain;
             craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
             src = craneLib.cleanCargoSource ./.;
@@ -186,13 +174,33 @@
             apps = {
               default = {
                 type = "app";
-                program = lib.getExe rox;
+                program = lib.getExe' rox "rox";
+                meta.description = "Rox bytecode VM - run with 'nix run .#rox -- [args...]'";
               };
-              rox-crafting-interpreters-tests = {
-                type = "app";
-                program = lib.getExe crafting-interpreters-tests;
-                meta.description = "Run the Crafting Interpreters test suite. Usage: nix run .#tests -- [chapters...]";
-              };
+              rox-crafting-interpreters-tests =
+                let
+                  crafting-interpreters-tests = pkgs.writers.writeNuBin "crafting-interpreters-tests" {
+                    makeWrapperArgs = [
+                      "--add-flags"
+                      "--test-suite=${inputs.crafting-interpreters}"
+                      "--add-flags"
+                      "--interpreter=${lib.getExe' rox "rox"}"
+                      "--prefix"
+                      "PATH"
+                      ":"
+                      "${lib.makeBinPath [
+                        inputs.oldDartNixpkgs.legacyPackages.${system}.dart
+                        pkgs.gnumake
+                        pkgs.uutils-coreutils-noprefix
+                      ]}"
+                    ];
+                  } (lib.readFile ./scripts/test_runner.nu);
+                in
+                {
+                  type = "app";
+                  program = lib.getExe crafting-interpreters-tests;
+                  meta.description = "Run the Crafting Interpreters test suite. Usage: nix run .#tests -- [chapters...]";
+                };
             };
 
             devShells.default = craneLib.devShell {
@@ -214,6 +222,12 @@
 
             pre-commit = {
               settings = {
+                # `nix flake check` runs in a pure environment, so clippy and cargo can't access
+                # to anything that's not tracked by git and can't fetch dependencies from the net.
+                # This addresses that by providing the cargo dependencies directly.
+                settings.rust.check.cargoDeps = pkgs.rustPlatform.importCargoLock {
+                  lockFile = ./Cargo.lock;
+                };
                 hooks = {
                   # Formatters
                   treefmt = {
@@ -224,27 +238,23 @@
                   convco.enable = true;
                   gitlint.enable = true;
                   check-merge-conflicts.enable = true;
-                  # `git-hooks` defines its own entries for
-                  # `clippy`, `rustfmt` and `taplo`, but we
-                  # also defined them with `crane` above, so
-                  # we can just use them here.
-                  clippy.enable = false;
-                  crane-clippy = {
-                    name = "crane clippy";
-                    package = self'.checks.rox-clippy;
-                    entry = "";
+                  clippy = {
+                    enable = true;
+                    packageOverrides = {
+                      cargo = rustToolchain;
+                      clippy = rustToolchain;
+                    };
                   };
-                  rustfmt.enable = false;
-                  crane-fmt = {
-                    name = "crane rustfmt";
-                    package = self'.checks.rox-fmt;
-                    entry = "";
+                  rustfmt = {
+                    enable = true;
+                    packageOverrides = {
+                      cargo = rustToolchain;
+                      rustfmt = rustToolchain;
+                    };
                   };
-                  taplo.enable = false;
-                  crane-toml-fmt = {
-                    name = "crane taplo fmt";
-                    package = self'.checks.rox-toml-fmt;
-                    entry = "";
+                  taplo = {
+                    enable = true;
+                    package = pkgs.taplo;
                   };
                 };
               };

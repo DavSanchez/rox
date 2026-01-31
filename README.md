@@ -4,9 +4,13 @@
 
 [![❄️ Rox package checks](https://github.com/DavSanchez/rox/actions/workflows/test.yaml/badge.svg)](https://github.com/DavSanchez/rox/actions/workflows/test.yaml)
 
-This is my implementation of the bytecode virtual machine for Lox, written in Rust and following (where possible) the C original from the book [Crafting Interpreters](https://www.craftinginterpreters.com) by Robert Nystrom.
+This is my implementation of the bytecode virtual machine for Lox, written in
+Rust and following (where possible) the C original from the book
+[Crafting Interpreters](https://www.craftinginterpreters.com) by Robert Nystrom.
 
-- [ ] Chapter 14: Chunks of Bytecode
+# Completed chapters
+
+- [x] Chapter 14: Chunks of Bytecode
 - [ ] Chapter 15: A Virtual Machine
 - [ ] Chapter 16: Scanning on Demand
 - [ ] Chapter 17: Compiling Expressions
@@ -26,5 +30,6 @@ This is my implementation of the bytecode virtual machine for Lox, written in Ru
 
 ## Benchmark evolution
 
-No benchmarks yet. Once they're in, you can see [per-commit performance charts](http://davsanchez.github.io/rox/dev/bench) to check
-how it's going.
+No benchmarks yet. Once they're in, you can see
+[per-commit performance charts](http://davsanchez.github.io/rox/dev/bench)
+to check how it's going.
