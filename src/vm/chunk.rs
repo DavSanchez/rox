@@ -47,3 +47,40 @@ impl Chunk {
         Ok(safe_index)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    #[test]
+    fn test_write_opcode() {
+        let mut chunk = Chunk::new();
+        chunk.write_opcode(OpCode::Return, 123);
+        assert_eq!(chunk.codes.count(), 1);
+        assert_eq!(chunk.lines.count(), 1);
+        assert_eq!(chunk.codes[0], OpCode::Return as u8);
+        assert_eq!(chunk.lines[0], 123);
+    }
+
+    #[test]
+    fn test_constant_limit() {
+        let mut chunk = Chunk::new();
+        for i in 0..256 {
+            assert!(chunk.write_constant(i as f64).is_ok());
+        }
+        assert!(chunk.write_constant(1.0).is_err());
+    }
+
+    proptest! {
+        #[test]
+        fn prop_lines_sync(ops in proptest::collection::vec(any::<u8>(), 0..100)) {
+            let mut chunk = Chunk::new();
+            for (i, op) in ops.iter().enumerate() {
+                chunk.write_byte(*op, i);
+            }
+            prop_assert_eq!(chunk.codes.count(), chunk.lines.count());
+            prop_assert_eq!(chunk.codes.count(), ops.len());
+        }
+    }
+}

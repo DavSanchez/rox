@@ -9,3 +9,6 @@ license = "MIT"
 [dependencies]
 anyhow = "1.0.100"
 thiserror = "2.0.18"
+
+[dev-dependencies]
+proptest = "1.9.0"

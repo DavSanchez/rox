@@ -33,3 +33,31 @@ impl fmt::Display for OpCode {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    #[test]
+    fn test_display() {
+        assert_eq!(format!("{}", OpCode::Return), "OP_RETURN");
+        assert_eq!(format!("{}", OpCode::Constant), "OP_CONSTANT");
+    }
+
+    #[test]
+    fn test_from_u8_valid() {
+        assert!(matches!(OpCode::try_from(0), Ok(OpCode::Return)));
+        assert!(matches!(OpCode::try_from(1), Ok(OpCode::Constant)));
+    }
+
+    proptest! {
+        #[test]
+        fn prop_opcode_conversion(byte in 0u8..=255) {
+            match byte {
+                0 | 1 => prop_assert!(OpCode::try_from(byte).is_ok()),
+                _ => prop_assert!(OpCode::try_from(byte).is_err()),
+            }
+        }
+    }
+}

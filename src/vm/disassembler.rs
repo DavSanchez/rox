@@ -64,3 +64,40 @@ pub enum DisassembleError {
     #[error(transparent)]
     Io(#[from] io::Error),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::vm::opcode::OpCode;
+
+    #[test]
+    fn test_disassemble_return() {
+        let mut chunk = Chunk::new();
+        chunk.write_opcode(OpCode::Return, 123);
+
+        let disassembler = Disassembler::new(&chunk, "test");
+        let mut buffer = Vec::new();
+        disassembler.write(&mut buffer).unwrap();
+
+        let output = String::from_utf8(buffer).unwrap();
+        assert!(output.contains("123"));
+        assert!(output.contains("OP_RETURN"));
+        assert!(output.contains("=="));
+    }
+
+    #[test]
+    fn test_disassemble_constant() {
+        let mut chunk = Chunk::new();
+        let idx = chunk.write_constant(42.0).unwrap();
+        chunk.write_opcode(OpCode::Constant, 100);
+        chunk.write_byte(idx, 100);
+
+        let disassembler = Disassembler::new(&chunk, "constant test");
+        let mut buffer = Vec::new();
+        disassembler.write(&mut buffer).unwrap();
+
+        let output = String::from_utf8(buffer).unwrap();
+        assert!(output.contains("OP_CONSTANT"));
+        assert!(output.contains("42"));
+    }
+}

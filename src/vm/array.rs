@@ -95,3 +95,74 @@ impl<T> Drop for Array<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    #[test]
+    fn test_push_and_index() {
+        let mut array = Array::new();
+        array.push(10);
+        array.push(20);
+
+        assert_eq!(array.count(), 2);
+        assert_eq!(array[0], 10);
+        assert_eq!(array[1], 20);
+    }
+
+    #[test]
+    fn test_pop() {
+        let mut array = Array::new();
+        array.push(10);
+        array.push(20);
+
+        assert_eq!(array.pop(), Some(20));
+        assert_eq!(array.count(), 1);
+        assert_eq!(array.pop(), Some(10));
+        assert_eq!(array.count(), 0);
+        assert_eq!(array.pop(), None);
+    }
+
+    #[test]
+    #[should_panic(expected = "Index out of bounds")]
+    fn test_out_of_bounds() {
+        let mut array: Array<u8> = Array::new();
+        array.push(1);
+        let _ = array[1];
+    }
+
+    proptest! {
+        #[test]
+        fn prop_push_and_read(vals in proptest::collection::vec(any::<u8>(), 0..100)) {
+            let mut array = Array::new();
+            for val in &vals {
+                array.push(*val);
+            }
+
+            prop_assert_eq!(array.count(), vals.len());
+
+            for (i, val) in vals.iter().enumerate() {
+                prop_assert_eq!(&array[i], val);
+            }
+        }
+
+        #[test]
+        fn prop_push_pop(vals in proptest::collection::vec(any::<u8>(), 0..100)) {
+            let mut array = Array::new();
+            for val in &vals {
+                array.push(*val);
+            }
+
+            let mut reversed = vals.clone();
+            reversed.reverse();
+
+            for val in reversed {
+                prop_assert_eq!(array.pop(), Some(val));
+            }
+            prop_assert_eq!(array.pop(), None);
+            prop_assert_eq!(array.count(), 0);
+        }
+    }
+}
