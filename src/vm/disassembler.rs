@@ -100,4 +100,42 @@ mod tests {
         assert!(output.contains("OP_CONSTANT"));
         assert!(output.contains("42"));
     }
+
+    #[test]
+    fn test_disassemble_multiple_instructions() {
+        let mut chunk = Chunk::new();
+
+        // Line 1: Constant 1.2
+        let constant_idx = chunk.write_constant(1.2).unwrap();
+        chunk.write_opcode(OpCode::Constant, 1);
+        chunk.write_byte(constant_idx, 1);
+
+        // Line 1: Return (should show |)
+        chunk.write_opcode(OpCode::Return, 1);
+
+        // Line 2: Return (should show 2)
+        chunk.write_opcode(OpCode::Return, 2);
+
+        let disassembler = Disassembler::new(&chunk, "test chunk");
+        let mut buffer = Vec::new();
+        disassembler.write(&mut buffer).unwrap();
+
+        let output = String::from_utf8(buffer).unwrap();
+        let lines: Vec<&str> = output.trim().lines().collect();
+
+        assert_eq!(lines[0], "== test chunk ==");
+
+        // 0000    1 OP_CONSTANT         0 '1.2'
+        assert!(lines[1].contains("0000"));
+        assert!(lines[1].contains("1 OP_CONSTANT"));
+        assert!(lines[1].contains("1.2"));
+
+        // 0002    | OP_RETURN
+        assert!(lines[2].contains("0002"));
+        assert!(lines[2].contains("| OP_RETURN"));
+
+        // 0003    2 OP_RETURN
+        assert!(lines[3].contains("0003"));
+        assert!(lines[3].contains("2 OP_RETURN"));
+    }
 }
