@@ -222,6 +222,7 @@
 
             pre-commit = {
               settings = {
+                package = pkgs.prek;
                 # `nix flake check` runs in a pure environment, so clippy and cargo can't access
                 # to anything that's not tracked by git and can't fetch dependencies from the net.
                 # This addresses that by providing the cargo dependencies directly.
