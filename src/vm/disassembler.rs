@@ -24,7 +24,7 @@ impl<'a> Disassembler<'a> {
         Ok(())
     }
 
-    fn disassemble_instruction<W: Write>(
+    pub fn disassemble_instruction<W: Write>(
         &self,
         w: &mut W,
         offset: usize,
