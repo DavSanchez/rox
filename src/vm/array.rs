@@ -11,15 +11,17 @@ pub struct Array<T> {
     ptr: NonNull<T>,
 }
 
-impl<T> Array<T> {
-    pub(super) fn new() -> Self {
+impl<T> Default for Array<T> {
+    fn default() -> Self {
         Self {
             length: 0,
             capacity: 0,
             ptr: NonNull::dangling(),
         }
     }
+}
 
+impl<T> Array<T> {
     pub(super) fn push(&mut self, byte: T) {
         if self.length == self.capacity {
             self.grow();
@@ -103,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_push_and_index() {
-        let mut array = Array::new();
+        let mut array = Array::default();
         array.push(10);
         array.push(20);
 
@@ -114,7 +116,7 @@ mod tests {
 
     #[test]
     fn test_pop() {
-        let mut array = Array::new();
+        let mut array = Array::default();
         array.push(10);
         array.push(20);
 
@@ -128,7 +130,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Index out of bounds")]
     fn test_out_of_bounds() {
-        let mut array: Array<u8> = Array::new();
+        let mut array: Array<u8> = Array::default();
         array.push(1);
         let _ = array[1];
     }
@@ -136,7 +138,7 @@ mod tests {
     proptest! {
         #[test]
         fn prop_push_and_read(vals in proptest::collection::vec(any::<u8>(), 0..100)) {
-            let mut array = Array::new();
+            let mut array = Array::default();
             for val in &vals {
                 array.push(*val);
             }
@@ -150,7 +152,7 @@ mod tests {
 
         #[test]
         fn prop_push_pop(vals in proptest::collection::vec(any::<u8>(), 0..100)) {
-            let mut array = Array::new();
+            let mut array = Array::default();
             for val in &vals {
                 array.push(*val);
             }
