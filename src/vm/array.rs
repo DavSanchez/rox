@@ -1,6 +1,6 @@
 use std::{
     alloc::{self, Layout},
-    ops::Index,
+    ops::{Deref, DerefMut, Index},
     ptr::{self, NonNull},
 };
 
@@ -95,6 +95,19 @@ impl<T> Drop for Array<T> {
                 alloc::dealloc(self.ptr.as_ptr() as *mut u8, layout);
             }
         }
+    }
+}
+
+impl<T> Deref for Array<T> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        unsafe { std::slice::from_raw_parts(self.ptr.as_ptr(), self.length) }
+    }
+}
+
+impl<T> DerefMut for Array<T> {
+    fn deref_mut(&mut self) -> &mut [T] {
+        unsafe { std::slice::from_raw_parts_mut(self.ptr.as_ptr(), self.length) }
     }
 }
 
