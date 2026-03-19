@@ -3,7 +3,7 @@ use std::fmt;
 use thiserror::Error;
 
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum OpCode {
     Return,
     Constant,
