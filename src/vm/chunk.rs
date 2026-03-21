@@ -6,6 +6,7 @@ use super::array::Array;
 use super::opcode::OpCode;
 use super::value::Value;
 
+#[derive(Debug, Default)]
 pub struct Chunk {
     pub codes: Array<u8>,
     pub lines: Array<usize>,
@@ -17,14 +18,6 @@ pub struct Chunk {
 pub struct ExceededConstantCount(#[from] TryFromIntError);
 
 impl Chunk {
-    pub fn new() -> Self {
-        Self {
-            codes: Array::new(),
-            lines: Array::new(),
-            constants: Array::new(),
-        }
-    }
-
     pub fn write_opcode(&mut self, opcode: OpCode, line: usize) {
         self.write_byte(opcode as u8, line);
     }
@@ -55,7 +48,7 @@ mod tests {
 
     #[test]
     fn test_write_opcode() {
-        let mut chunk = Chunk::new();
+        let mut chunk = Chunk::default();
         chunk.write_opcode(OpCode::Return, 123);
         assert_eq!(chunk.codes.count(), 1);
         assert_eq!(chunk.lines.count(), 1);
@@ -65,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_constant_limit() {
-        let mut chunk = Chunk::new();
+        let mut chunk = Chunk::default();
         for i in 0..256 {
             assert!(chunk.write_constant(i as f64).is_ok());
         }
@@ -75,7 +68,7 @@ mod tests {
     proptest! {
         #[test]
         fn prop_lines_sync(ops in proptest::collection::vec(any::<u8>(), 0..100)) {
-            let mut chunk = Chunk::new();
+            let mut chunk = Chunk::default();
             for (i, op) in ops.iter().enumerate() {
                 chunk.write_byte(*op, i);
             }

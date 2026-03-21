@@ -24,7 +24,7 @@ impl<'a> Disassembler<'a> {
         Ok(())
     }
 
-    fn disassemble_instruction<W: Write>(
+    pub fn disassemble_instruction<W: Write>(
         &self,
         w: &mut W,
         offset: usize,
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_disassemble_return() {
-        let mut chunk = Chunk::new();
+        let mut chunk = Chunk::default();
         chunk.write_opcode(OpCode::Return, 123);
 
         let disassembler = Disassembler::new(&chunk, "test");
@@ -87,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_disassemble_constant() {
-        let mut chunk = Chunk::new();
+        let mut chunk = Chunk::default();
         let idx = chunk.write_constant(42.0).unwrap();
         chunk.write_opcode(OpCode::Constant, 100);
         chunk.write_byte(idx, 100);
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_disassemble_multiple_instructions() {
-        let mut chunk = Chunk::new();
+        let mut chunk = Chunk::default();
 
         // Line 1: Constant 1.2
         let constant_idx = chunk.write_constant(1.2).unwrap();
