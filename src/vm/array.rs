@@ -73,6 +73,15 @@ impl<T> Array<T> {
         };
         self.capacity = new_capacity;
     }
+
+    pub fn get(&self, index: usize) -> Option<&T> {
+        if index >= self.length {
+            None
+        } else {
+            // Indexing assumed safe due to bound check above
+            Some(&self[index])
+        }
+    }
 }
 
 impl<T> Index<usize> for Array<T> {
