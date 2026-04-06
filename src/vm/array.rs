@@ -75,11 +75,11 @@ impl<T> Array<T> {
     }
 
     pub fn get(&self, index: usize) -> Option<&T> {
-        if index >= self.length {
-            None
-        } else {
+        if index < self.length {
             // Indexing assumed safe due to bound check above
             Some(&self[index])
+        } else {
+            None
         }
     }
 }
