@@ -60,9 +60,9 @@ mod tests {
     fn test_constant_limit() {
         let mut chunk = Chunk::default();
         for i in 0..256 {
-            assert!(chunk.write_constant(i as f64).is_ok());
+            assert!(chunk.write_constant((i as f64).into()).is_ok());
         }
-        assert!(chunk.write_constant(1.0).is_err());
+        assert!(chunk.write_constant(1.0.into()).is_err());
     }
 
     proptest! {

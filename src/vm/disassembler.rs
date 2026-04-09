@@ -88,7 +88,7 @@ mod tests {
     #[test]
     fn test_disassemble_constant() {
         let mut chunk = Chunk::default();
-        let idx = chunk.write_constant(42.0).unwrap();
+        let idx = chunk.write_constant(42.0.into()).unwrap();
         chunk.write_opcode(OpCode::Constant, 100);
         chunk.write_byte(idx, 100);
 
@@ -106,7 +106,7 @@ mod tests {
         let mut chunk = Chunk::default();
 
         // Line 1: Constant 1.2
-        let constant_idx = chunk.write_constant(1.2).unwrap();
+        let constant_idx = chunk.write_constant(1.2.into()).unwrap();
         chunk.write_opcode(OpCode::Constant, 1);
         chunk.write_byte(constant_idx, 1);
 
