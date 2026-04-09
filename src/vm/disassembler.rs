@@ -18,7 +18,7 @@ impl<'a> Disassembler<'a> {
         writeln!(w, "== {} ==", self.name)?;
 
         let mut offset = 0;
-        while offset < self.chunk.codes.count() {
+        while offset < self.chunk.codes.length() {
             offset = self.disassemble_instruction(w, offset)?;
         }
         Ok(())

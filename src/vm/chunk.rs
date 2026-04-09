@@ -32,7 +32,7 @@ impl Chunk {
     pub fn write_constant(&mut self, value: Value) -> Result<u8, ExceededConstantCount> {
         // We must return an u8 because this is the operand size for OP_CONSTANT.
         // so we cannot actually have more than 256 constants for this VM, for now!
-        let index = self.constants.count();
+        let index = self.constants.length();
         // We stop the VM if we exceed 256 constants.
         let safe_index = u8::try_from(index)?;
         // Otherwise we continue
@@ -50,8 +50,8 @@ mod tests {
     fn test_write_opcode() {
         let mut chunk = Chunk::default();
         chunk.write_opcode(OpCode::Return, 123);
-        assert_eq!(chunk.codes.count(), 1);
-        assert_eq!(chunk.lines.count(), 1);
+        assert_eq!(chunk.codes.length(), 1);
+        assert_eq!(chunk.lines.length(), 1);
         assert_eq!(chunk.codes[0], OpCode::Return as u8);
         assert_eq!(chunk.lines[0], 123);
     }
@@ -72,8 +72,8 @@ mod tests {
             for (i, op) in ops.iter().enumerate() {
                 chunk.write_byte(*op, i);
             }
-            prop_assert_eq!(chunk.codes.count(), chunk.lines.count());
-            prop_assert_eq!(chunk.codes.count(), ops.len());
+            prop_assert_eq!(chunk.codes.length(), chunk.lines.length());
+            prop_assert_eq!(chunk.codes.length(), ops.len());
         }
     }
 }

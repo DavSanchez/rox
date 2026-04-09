@@ -22,7 +22,7 @@ impl<T> Default for Array<T> {
 }
 
 impl<T> Array<T> {
-    pub(super) fn push(&mut self, byte: T) {
+    pub fn push(&mut self, byte: T) {
         if self.length == self.capacity {
             self.grow();
         }
@@ -33,7 +33,7 @@ impl<T> Array<T> {
         self.length += 1;
     }
 
-    fn pop(&mut self) -> Option<T> {
+    pub fn pop(&mut self) -> Option<T> {
         if self.length == 0 {
             None
         } else {
@@ -42,8 +42,29 @@ impl<T> Array<T> {
         }
     }
 
-    pub(super) fn count(&self) -> usize {
+    pub fn get(&self, index: usize) -> Option<&T> {
+        if index < self.length {
+            // Indexing assumed safe due to bound check above
+            Some(&self[index])
+        } else {
+            None
+        }
+    }
+
+    pub fn length(&self) -> usize {
         self.length
+    }
+
+    pub fn peek(&self) -> Option<&T> {
+        if self.length == 0 {
+            None
+        } else {
+            Some(&self[self.length - 1])
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.length == 0
     }
 
     fn grow(&mut self) {
@@ -72,15 +93,6 @@ impl<T> Array<T> {
             None => alloc::handle_alloc_error(new_layout),
         };
         self.capacity = new_capacity;
-    }
-
-    pub fn get(&self, index: usize) -> Option<&T> {
-        if index < self.length {
-            // Indexing assumed safe due to bound check above
-            Some(&self[index])
-        } else {
-            None
-        }
     }
 }
 
@@ -131,7 +143,7 @@ mod tests {
         array.push(10);
         array.push(20);
 
-        assert_eq!(array.count(), 2);
+        assert_eq!(array.length(), 2);
         assert_eq!(array[0], 10);
         assert_eq!(array[1], 20);
     }
@@ -143,9 +155,9 @@ mod tests {
         array.push(20);
 
         assert_eq!(array.pop(), Some(20));
-        assert_eq!(array.count(), 1);
+        assert_eq!(array.length(), 1);
         assert_eq!(array.pop(), Some(10));
-        assert_eq!(array.count(), 0);
+        assert_eq!(array.length(), 0);
         assert_eq!(array.pop(), None);
     }
 
@@ -165,7 +177,7 @@ mod tests {
                 array.push(*val);
             }
 
-            prop_assert_eq!(array.count(), vals.len());
+            prop_assert_eq!(array.length(), vals.len());
 
             for (i, val) in vals.iter().enumerate() {
                 prop_assert_eq!(&array[i], val);
@@ -186,7 +198,7 @@ mod tests {
                 prop_assert_eq!(array.pop(), Some(val));
             }
             prop_assert_eq!(array.pop(), None);
-            prop_assert_eq!(array.count(), 0);
+            prop_assert_eq!(array.length(), 0);
         }
     }
 }
