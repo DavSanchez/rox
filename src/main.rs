@@ -17,7 +17,7 @@ fn main() -> ExitCode {
 }
 
 fn work() -> anyhow::Result<()> {
-    let vm = Vm;
+    let mut vm = Vm::default();
     let mut chunk = Chunk::default();
     let constant_idx = chunk.write_constant(1.2.into())?;
     chunk.write_opcode(OpCode::Constant, 123);

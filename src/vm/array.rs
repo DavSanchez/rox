@@ -55,18 +55,6 @@ impl<T> Array<T> {
         self.length
     }
 
-    pub fn peek(&self) -> Option<&T> {
-        if self.length == 0 {
-            None
-        } else {
-            Some(&self[self.length - 1])
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.length == 0
-    }
-
     fn grow(&mut self) {
         // This makes use of `Layout::array` which creates a memory layout matching a `[T; n]`.
         let (new_capacity, new_layout) = if self.capacity == 0 {
