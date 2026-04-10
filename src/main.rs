@@ -22,6 +22,7 @@ fn work() -> anyhow::Result<()> {
     let constant_idx = chunk.write_constant(1.2.into())?;
     chunk.write_opcode(OpCode::Constant, 123);
     chunk.write_byte(constant_idx, 123);
+    chunk.write_opcode(OpCode::Negate, 123);
     chunk.write_opcode(OpCode::Return, 123);
 
     let disassembler = Disassembler::new(&chunk, "test chunk");

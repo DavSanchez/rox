@@ -42,15 +42,6 @@ impl<T> Array<T> {
         }
     }
 
-    pub fn get(&self, index: usize) -> Option<&T> {
-        if index < self.length {
-            // Indexing assumed safe due to bound check above
-            Some(&self[index])
-        } else {
-            None
-        }
-    }
-
     pub fn length(&self) -> usize {
         self.length
     }

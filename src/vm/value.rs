@@ -9,6 +9,12 @@ impl From<f64> for Value {
     }
 }
 
+impl From<Value> for f64 {
+    fn from(value: Value) -> Self {
+        value.0
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
