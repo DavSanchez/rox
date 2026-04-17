@@ -19,6 +19,6 @@ pub enum CompileError {
 
 #[derive(Debug, Error)]
 pub enum RuntimeError {
-    #[error("Chunk is malformed")]
-    MalformedChunk,
+    // #[error("Chunk is malformed")]
+    // MalformedChunk,
 }
