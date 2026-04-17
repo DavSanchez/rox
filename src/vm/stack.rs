@@ -1,3 +1,5 @@
+use std::fmt;
+
 use super::value::Value;
 
 const STACK_MAX: usize = 256;
@@ -6,6 +8,16 @@ const STACK_MAX: usize = 256;
 pub(super) struct ValueStack {
     slots: [Value; STACK_MAX],
     top: usize,
+}
+
+impl fmt::Display for ValueStack {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[")?;
+        self.slots[..self.top]
+            .iter()
+            .try_for_each(|v| write!(f, " {v}"))?;
+        write!(f, " ]")
+    }
 }
 
 impl Default for ValueStack {
