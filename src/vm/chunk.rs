@@ -6,6 +6,7 @@ use super::array::Array;
 use super::opcode::OpCode;
 use super::value::Value;
 
+#[derive(Debug, Default)]
 pub struct Chunk {
     pub codes: Array<u8>,
     pub lines: Array<usize>,
@@ -17,14 +18,6 @@ pub struct Chunk {
 pub struct ExceededConstantCount(#[from] TryFromIntError);
 
 impl Chunk {
-    pub fn new() -> Self {
-        Self {
-            codes: Array::new(),
-            lines: Array::new(),
-            constants: Array::new(),
-        }
-    }
-
     pub fn write_opcode(&mut self, opcode: OpCode, line: usize) {
         self.write_byte(opcode as u8, line);
     }
@@ -39,7 +32,7 @@ impl Chunk {
     pub fn write_constant(&mut self, value: Value) -> Result<u8, ExceededConstantCount> {
         // We must return an u8 because this is the operand size for OP_CONSTANT.
         // so we cannot actually have more than 256 constants for this VM, for now!
-        let index = self.constants.count();
+        let index = self.constants.length();
         // We stop the VM if we exceed 256 constants.
         let safe_index = u8::try_from(index)?;
         // Otherwise we continue
@@ -55,32 +48,32 @@ mod tests {
 
     #[test]
     fn test_write_opcode() {
-        let mut chunk = Chunk::new();
+        let mut chunk = Chunk::default();
         chunk.write_opcode(OpCode::Return, 123);
-        assert_eq!(chunk.codes.count(), 1);
-        assert_eq!(chunk.lines.count(), 1);
+        assert_eq!(chunk.codes.length(), 1);
+        assert_eq!(chunk.lines.length(), 1);
         assert_eq!(chunk.codes[0], OpCode::Return as u8);
         assert_eq!(chunk.lines[0], 123);
     }
 
     #[test]
     fn test_constant_limit() {
-        let mut chunk = Chunk::new();
+        let mut chunk = Chunk::default();
         for i in 0..256 {
-            assert!(chunk.write_constant(i as f64).is_ok());
+            assert!(chunk.write_constant((i as f64).into()).is_ok());
         }
-        assert!(chunk.write_constant(1.0).is_err());
+        assert!(chunk.write_constant(1.0.into()).is_err());
     }
 
     proptest! {
         #[test]
         fn prop_lines_sync(ops in proptest::collection::vec(any::<u8>(), 0..100)) {
-            let mut chunk = Chunk::new();
+            let mut chunk = Chunk::default();
             for (i, op) in ops.iter().enumerate() {
                 chunk.write_byte(*op, i);
             }
-            prop_assert_eq!(chunk.codes.count(), chunk.lines.count());
-            prop_assert_eq!(chunk.codes.count(), ops.len());
+            prop_assert_eq!(chunk.codes.length(), chunk.lines.length());
+            prop_assert_eq!(chunk.codes.length(), ops.len());
         }
     }
 }
