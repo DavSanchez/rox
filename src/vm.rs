@@ -1,7 +1,7 @@
 mod array;
 pub mod chunk;
 pub mod disassembler;
-mod error;
+pub mod error;
 pub mod opcode;
 mod stack;
 mod value;
@@ -9,7 +9,7 @@ mod value;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use chunk::Chunk;
-use error::{CompileError, InterpretError};
+use error::{CompileError, RoxError};
 use opcode::OpCode;
 use stack::ValueStack;
 use value::Value;
@@ -20,7 +20,17 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn interpret(&mut self, chunk: &Chunk) -> Result<(), InterpretError> {
+    pub fn interpret(&mut self, source: &str) -> Result<(), RoxError> {
+        let _chunk = self.compile(source)?;
+        Ok(())
+    }
+
+    fn compile(&mut self, source: &str) -> Result<Chunk, CompileError> {
+        crate::compiler::compile(source);
+        Ok(Chunk::default())
+    }
+
+    fn run(&mut self, chunk: &Chunk) -> Result<(), RoxError> {
         let mut instruction_pointer = 0usize;
 
         loop {

@@ -3,11 +3,14 @@ use thiserror::Error;
 use crate::vm::opcode::UnknownOpcode;
 
 #[derive(Debug, Error)]
-pub enum InterpretError {
-    #[error("Compile error: {0}")]
+pub enum RoxError {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
     Compile(#[from] CompileError),
 
-    #[error("Runtime error: {0}")]
+    #[error(transparent)]
     Runtime(#[from] RuntimeError),
 }
 
@@ -15,10 +18,10 @@ pub enum InterpretError {
 pub enum CompileError {
     #[error(transparent)]
     UnknownOpcode(UnknownOpcode),
+
+    #[error("Scan error: {0}")]
+    Scan(String),
 }
 
 #[derive(Debug, Error)]
-pub enum RuntimeError {
-    // #[error("Chunk is malformed")]
-    // MalformedChunk,
-}
+pub enum RuntimeError {}

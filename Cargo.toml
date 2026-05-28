@@ -1,13 +1,12 @@
 [package]
 name = "rox"
-version = "0.1.15"
+version = "0.1.16"
 edition = "2024"
 license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.100"
 thiserror = "2.0.18"
 
 [dev-dependencies]
