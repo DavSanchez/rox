@@ -28,7 +28,7 @@ impl Vm {
     }
 
     fn compile(&mut self, source: &str) -> Result<Chunk, CompileError> {
-        compiler::compile(source)?;
+        compiler::compile(source, &mut std::io::stdout())?;
         Ok(Chunk::default())
     }
 
