@@ -14,6 +14,8 @@ use opcode::OpCode;
 use stack::ValueStack;
 use value::Value;
 
+use crate::compiler;
+
 #[derive(Debug, Default)]
 pub struct Vm {
     stack: ValueStack,
@@ -26,7 +28,7 @@ impl Vm {
     }
 
     fn compile(&mut self, source: &str) -> Result<Chunk, CompileError> {
-        crate::compiler::compile(source);
+        compiler::compile(source)?;
         Ok(Chunk::default())
     }
 

@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+use crate::compiler::scanner::ScanError;
 use crate::vm::opcode::UnknownOpcode;
 
 #[derive(Debug, Error)]
@@ -19,8 +20,8 @@ pub enum CompileError {
     #[error(transparent)]
     UnknownOpcode(UnknownOpcode),
 
-    #[error("Scan error: {0}")]
-    Scan(String),
+    #[error(transparent)]
+    Scan(#[from] ScanError),
 }
 
 #[derive(Debug, Error)]

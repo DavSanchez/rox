@@ -1,3 +1,5 @@
+use thiserror::Error;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum TokenType {
@@ -39,14 +41,19 @@ pub enum TokenType {
     True,
     Var,
     While,
-    Error,
-    Eof,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Token<'a> {
     pub token_type: TokenType,
     pub start: &'a str,
+    pub line: usize,
+}
+
+#[derive(Debug, Error)]
+#[error("[line {line}] Error: {message}")]
+pub struct ScanError {
+    pub message: &'static str,
     pub line: usize,
 }
 
@@ -67,17 +74,6 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn scan_token(&mut self) -> Token<'a> {
-        self.start = self.current;
-
-        if self.is_at_end() {
-            return self.make_token(TokenType::Eof);
-        }
-
-        self.advance();
-        self.error_token("Unexpected character.")
-    }
-
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
     }
@@ -96,11 +92,91 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn error_token(&self, message: &'static str) -> Token<'a> {
-        Token {
-            token_type: TokenType::Error,
-            start: message,
+    fn error(&self, message: &'static str) -> ScanError {
+        ScanError {
+            message,
             line: self.line,
         }
+    }
+}
+
+impl<'a> Iterator for Scanner<'a> {
+    type Item = Result<Token<'a>, ScanError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.start = self.current;
+
+        if self.is_at_end() {
+            return None;
+        }
+
+        self.advance();
+        Some(Err(self.error("Unexpected character.")))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_source_yields_no_tokens() {
+        let mut scanner = Scanner::new("");
+        assert!(scanner.next().is_none());
+    }
+
+    #[test]
+    fn unrecognized_character_produces_error() {
+        let mut scanner = Scanner::new("@");
+        let result = scanner.next();
+        assert!(matches!(result, Some(Err(_))));
+    }
+
+    #[test]
+    fn error_includes_line_number() {
+        let mut scanner = Scanner::new("a");
+        if let Some(Err(e)) = scanner.next() {
+            assert_eq!(e.line, 1);
+            assert_eq!(e.message, "Unexpected character.");
+        } else {
+            panic!("Expected error");
+        }
+    }
+
+    #[test]
+    fn multiple_unrecognized_characters_produce_multiple_errors() {
+        let scanner = Scanner::new("abc");
+        let results: Vec<_> = scanner.collect();
+        assert_eq!(results.len(), 3);
+        assert!(results.iter().all(|r| r.is_err()));
+    }
+
+    #[test]
+    fn error_display_format() {
+        let err = ScanError {
+            message: "Unexpected character.",
+            line: 42,
+        };
+        assert_eq!(format!("{}", err), "[line 42] Error: Unexpected character.");
+    }
+
+    #[test]
+    fn iterator_can_be_used_with_try_for_each() {
+        let mut scanner = Scanner::new("");
+        let result: Result<(), ScanError> = scanner.try_for_each(|_| Ok(()));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn iterator_propagates_errors_with_try_for_each() {
+        let mut scanner = Scanner::new("abc");
+        let mut count = 0;
+        let result: Result<(), ScanError> = scanner.try_for_each(|item| {
+            count += 1;
+            item?;
+            Ok(())
+        });
+        assert!(result.is_err());
+        assert_eq!(count, 1);
     }
 }
