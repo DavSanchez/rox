@@ -169,6 +169,60 @@ impl<'a> Scanner<'a> {
         Ok(self.make_token(TokenType::String))
     }
 
+    fn identifier(&mut self) -> Token<'a> {
+        while is_alpha(self.peek()) || is_digit(self.peek()) {
+            self.advance();
+        }
+        self.make_token(self.identifier_type())
+    }
+
+    fn identifier_type(&self) -> TokenType {
+        let len = self.current - self.start;
+        let bytes = self.source.as_bytes();
+
+        if len == 0 {
+            return TokenType::Identifier;
+        }
+
+        match bytes[self.start] {
+            b'a' if len == 3 && self.check_keyword(1, b"nd") => TokenType::And,
+            b'c' if len == 5 && self.check_keyword(1, b"lass") => TokenType::Class,
+            b'e' if len == 4 && self.check_keyword(1, b"lse") => TokenType::Else,
+            b'i' if len == 2 && self.check_keyword(1, b"f") => TokenType::If,
+            b'n' if len == 3 && self.check_keyword(1, b"il") => TokenType::Nil,
+            b'o' if len == 2 && self.check_keyword(1, b"r") => TokenType::Or,
+            b'p' if len == 5 && self.check_keyword(1, b"rint") => TokenType::Print,
+            b'r' if len == 6 && self.check_keyword(1, b"eturn") => TokenType::Return,
+            b's' if len == 5 && self.check_keyword(1, b"uper") => TokenType::Super,
+            b'v' if len == 3 && self.check_keyword(1, b"ar") => TokenType::Var,
+            b'w' if len == 5 && self.check_keyword(1, b"hile") => TokenType::While,
+            b'f' if len >= 2 => match bytes[self.start + 1] {
+                b'a' if len == 5 && self.check_keyword(2, b"lse") => TokenType::False,
+                b'o' if len == 3 && self.check_keyword(2, b"r") => TokenType::For,
+                b'u' if len == 3 && self.check_keyword(2, b"n") => TokenType::Fun,
+                _ => TokenType::Identifier,
+            },
+            b't' if len >= 2 => match bytes[self.start + 1] {
+                b'h' if len == 4 && self.check_keyword(2, b"is") => TokenType::This,
+                b'r' if len == 4 && self.check_keyword(2, b"ue") => TokenType::True,
+                _ => TokenType::Identifier,
+            },
+            _ => TokenType::Identifier,
+        }
+    }
+
+    fn check_keyword(&self, start: usize, rest: &[u8]) -> bool {
+        let bytes = self.source.as_bytes();
+        let keyword_start = self.start + start;
+        let keyword_end = keyword_start + rest.len();
+
+        if keyword_end > self.current {
+            return false;
+        }
+
+        &bytes[keyword_start..keyword_end] == rest
+    }
+
     fn number(&mut self) -> Token<'a> {
         while is_digit(self.peek()) {
             self.advance();
@@ -248,6 +302,7 @@ impl<'a> Iterator for Scanner<'a> {
             }
             b'"' => return Some(self.string()),
             _ if is_digit(c) => return Some(Ok(self.number())),
+            _ if is_alpha(c) => return Some(Ok(self.identifier())),
             _ => return Some(Err(self.error("Unexpected character."))),
         };
 
@@ -387,10 +442,80 @@ mod tests {
     }
 
     #[test]
-    fn unrecognized_character_produces_error() {
-        let mut scanner = Scanner::new("@");
-        let result = scanner.next();
-        assert!(matches!(result, Some(Err(_))));
+    fn test_identifiers() {
+        let mut scanner = Scanner::new("foo bar_baz _test123");
+        let tokens: Vec<_> = scanner.collect();
+        assert_eq!(tokens.len(), 3);
+        assert!(matches!(
+            tokens[0],
+            Ok(Token {
+                token_type: TokenType::Identifier,
+                start: "foo",
+                ..
+            })
+        ));
+        assert!(matches!(
+            tokens[1],
+            Ok(Token {
+                token_type: TokenType::Identifier,
+                start: "bar_baz",
+                ..
+            })
+        ));
+        assert!(matches!(
+            tokens[2],
+            Ok(Token {
+                token_type: TokenType::Identifier,
+                start: "_test123",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn test_keywords() {
+        let mut scanner = Scanner::new(
+            "and class else false for fun if nil or print return super this true var while",
+        );
+        let expected = vec![
+            TokenType::And,
+            TokenType::Class,
+            TokenType::Else,
+            TokenType::False,
+            TokenType::For,
+            TokenType::Fun,
+            TokenType::If,
+            TokenType::Nil,
+            TokenType::Or,
+            TokenType::Print,
+            TokenType::Return,
+            TokenType::Super,
+            TokenType::This,
+            TokenType::True,
+            TokenType::Var,
+            TokenType::While,
+        ];
+        let tokens: Vec<_> = scanner.collect();
+        assert_eq!(tokens.len(), expected.len());
+        for (token, expected_type) in tokens.iter().zip(expected.iter()) {
+            assert!(matches!(token, Ok(Token { token_type, .. }) if token_type == expected_type));
+        }
+    }
+
+    #[test]
+    fn test_keyword_prefixes_are_identifiers() {
+        let mut scanner = Scanner::new("andy classy elseif falsehood format funny");
+        let tokens: Vec<_> = scanner.collect();
+        assert_eq!(tokens.len(), 6);
+        for token in tokens {
+            assert!(matches!(
+                token,
+                Ok(Token {
+                    token_type: TokenType::Identifier,
+                    ..
+                })
+            ));
+        }
     }
 
     #[test]
