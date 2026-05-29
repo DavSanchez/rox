@@ -69,19 +69,13 @@ mod tests {
                 start: ";",
                 line: 1,
             }),
-            Ok(Token {
-                token_type: TokenType::Eof,
-                start: "",
-                line: 2,
-            }),
         ];
 
         let mut output = Vec::new();
         write_tokens(tokens, &mut output).unwrap();
 
         let output_str = String::from_utf8(output).unwrap();
-        let expected =
-            "   1 31 'print'\n   | 21 '1'\n   |  7 '+'\n   | 21 '2'\n   |  8 ';'\n   2 39 ''\n";
+        let expected = "   1 31 'print'\n   | 21 '1'\n   |  7 '+'\n   | 21 '2'\n   |  8 ';'\n";
         assert_eq!(output_str, expected);
     }
 }

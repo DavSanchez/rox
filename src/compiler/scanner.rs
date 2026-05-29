@@ -41,8 +41,6 @@ pub enum TokenType {
     True,
     Var,
     While,
-    Error,
-    Eof,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -443,7 +441,7 @@ mod tests {
 
     #[test]
     fn test_identifiers() {
-        let mut scanner = Scanner::new("foo bar_baz _test123");
+        let scanner = Scanner::new("foo bar_baz _test123");
         let tokens: Vec<_> = scanner.collect();
         assert_eq!(tokens.len(), 3);
         assert!(matches!(
@@ -474,7 +472,7 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let mut scanner = Scanner::new(
+        let scanner = Scanner::new(
             "and class else false for fun if nil or print return super this true var while",
         );
         let expected = vec![
@@ -504,7 +502,7 @@ mod tests {
 
     #[test]
     fn test_keyword_prefixes_are_identifiers() {
-        let mut scanner = Scanner::new("andy classy elseif falsehood format funny");
+        let scanner = Scanner::new("andy classy elseif falsehood format funny");
         let tokens: Vec<_> = scanner.collect();
         assert_eq!(tokens.len(), 6);
         for token in tokens {
