@@ -6,6 +6,7 @@ use super::array::Array;
 use super::opcode::OpCode;
 use super::value::Value;
 
+#[allow(dead_code)]
 #[derive(Debug, Default)]
 pub struct Chunk {
     pub codes: Array<u8>,
@@ -13,10 +14,12 @@ pub struct Chunk {
     pub constants: Array<Value>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 #[error("Exceeded constant count. Maximum is 256.")]
 pub struct ExceededConstantCount(#[from] TryFromIntError);
 
+#[allow(dead_code)]
 impl Chunk {
     pub fn write_opcode(&mut self, opcode: OpCode, line: usize) {
         self.write_byte(opcode as u8, line);

@@ -2,6 +2,7 @@ use std::fmt;
 
 use thiserror::Error;
 
+#[allow(dead_code)]
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum OpCode {
@@ -14,6 +15,7 @@ pub enum OpCode {
     Divide,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 #[error("Unknown opcode: {0}")]
 pub struct UnknownOpcode(u8);

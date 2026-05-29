@@ -4,11 +4,13 @@ use super::chunk::Chunk;
 use super::opcode::{OpCode, UnknownOpcode};
 use thiserror::Error;
 
+#[allow(dead_code)]
 pub struct Disassembler<'a> {
     chunk: &'a Chunk,
     name: &'a str,
 }
 
+#[allow(dead_code)]
 impl<'a> Disassembler<'a> {
     pub fn new(chunk: &'a Chunk, name: &'a str) -> Self {
         Self { chunk, name }
@@ -57,6 +59,7 @@ impl<'a> Disassembler<'a> {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Error)]
 pub enum DisassembleError {
     #[error(transparent)]

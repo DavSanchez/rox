@@ -21,6 +21,7 @@ pub struct Vm {
     stack: ValueStack,
 }
 
+#[allow(dead_code)]
 impl Vm {
     pub fn interpret(&mut self, source: &str) -> Result<(), RoxError> {
         let _chunk = self.compile(source)?;

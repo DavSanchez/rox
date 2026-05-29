@@ -4,6 +4,7 @@ use super::value::Value;
 
 const STACK_MAX: usize = 256;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(super) struct ValueStack {
     slots: [Value; STACK_MAX],
@@ -29,6 +30,7 @@ impl Default for ValueStack {
     }
 }
 
+#[allow(dead_code)]
 impl ValueStack {
     pub(super) fn push(&mut self, value: Value) {
         debug_assert!(self.top < STACK_MAX, "stack overflow");
