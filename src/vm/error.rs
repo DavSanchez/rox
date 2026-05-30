@@ -1,13 +1,17 @@
 use thiserror::Error;
 
+use crate::compiler::scanner::ScanError;
 use crate::vm::opcode::UnknownOpcode;
 
 #[derive(Debug, Error)]
-pub enum InterpretError {
-    #[error("Compile error: {0}")]
+pub enum RoxError {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
     Compile(#[from] CompileError),
 
-    #[error("Runtime error: {0}")]
+    #[error(transparent)]
     Runtime(#[from] RuntimeError),
 }
 
@@ -15,10 +19,22 @@ pub enum InterpretError {
 pub enum CompileError {
     #[error(transparent)]
     UnknownOpcode(UnknownOpcode),
+
+    #[error(transparent)]
+    Scan(#[from] ScanError),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 }
 
 #[derive(Debug, Error)]
-pub enum RuntimeError {
-    // #[error("Chunk is malformed")]
-    // MalformedChunk,
+pub enum RuntimeError {}
+
+impl From<crate::compiler::CompileError> for CompileError {
+    fn from(err: crate::compiler::CompileError) -> Self {
+        match err {
+            crate::compiler::CompileError::Scan(e) => CompileError::Scan(e),
+            crate::compiler::CompileError::Io(e) => CompileError::Io(e),
+        }
+    }
 }

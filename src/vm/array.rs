@@ -21,6 +21,7 @@ impl<T> Default for Array<T> {
     }
 }
 
+#[allow(dead_code)]
 impl<T> Array<T> {
     pub fn push(&mut self, byte: T) {
         if self.length == self.capacity {
