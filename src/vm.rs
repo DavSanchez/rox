@@ -4,8 +4,9 @@ pub mod disassembler;
 pub mod error;
 pub mod opcode;
 mod stack;
-mod value;
+pub mod value;
 
+use std::io::{self, Stdout, Write};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use chunk::Chunk;
@@ -16,21 +17,44 @@ use value::Value;
 
 use crate::compiler;
 
-#[derive(Debug, Default)]
-pub struct Vm {
+pub struct Vm<W: Write = Stdout> {
     stack: ValueStack,
+    output: W,
+}
+
+impl Default for Vm<Stdout> {
+    fn default() -> Self {
+        Self {
+            stack: ValueStack::default(),
+            output: io::stdout(),
+        }
+    }
+}
+
+impl<W: Write> std::fmt::Debug for Vm<W> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Vm")
+            .field("stack", &self.stack)
+            .finish_non_exhaustive()
+    }
 }
 
 #[allow(dead_code)]
-impl Vm {
-    pub fn interpret(&mut self, source: &str) -> Result<(), RoxError> {
-        let _chunk = self.compile(source)?;
-        Ok(())
+impl<W: Write> Vm<W> {
+    pub fn with_output(output: W) -> Self {
+        Self {
+            stack: ValueStack::default(),
+            output,
+        }
     }
 
-    fn compile(&mut self, source: &str) -> Result<Chunk, CompileError> {
-        compiler::compile(source, &mut std::io::stdout())?;
-        Ok(Chunk::default())
+    pub fn into_output(self) -> W {
+        self.output
+    }
+
+    pub fn interpret(&mut self, source: &str) -> Result<(), RoxError> {
+        let chunk = compiler::compile(source)?;
+        self.run(&chunk)
     }
 
     fn run(&mut self, chunk: &Chunk) -> Result<(), RoxError> {
@@ -58,7 +82,7 @@ impl Vm {
 
     fn interpret_return(&mut self) {
         let value = self.stack.pop();
-        println!("{value}");
+        let _ = writeln!(self.output, "{value}");
     }
 
     fn interpret_negate(&mut self) {
@@ -80,4 +104,9 @@ impl Vm {
         let v1 = self.stack.pop();
         self.stack.push(op(v1, v2));
     }
+}
+
+#[allow(dead_code)]
+pub fn default_output() -> Stdout {
+    io::stdout()
 }
