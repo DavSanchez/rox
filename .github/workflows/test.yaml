@@ -28,7 +28,6 @@ jobs:
         run: nix flake check -L
 
   crafting-interpreter-tests:
-    if: ${{ !always() }} # Disabled until chapter 17
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false # for knowing the results of other matrix checks even if some fail
@@ -47,7 +46,7 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Chapter ${{ matrix.test-chapter }} tests from Crafting Interpreters
-        run: nix run .#hox-crafting-interpreters-tests -- ${{ matrix.test-chapter }}
+        run: nix run .#rox-crafting-interpreters-tests -- ${{ matrix.test-chapter }}
 
   check-all-green:
     name: 🟢 All required checks and tests pass
@@ -55,7 +54,7 @@ jobs:
     runs-on: Ubuntu-latest
     needs:
       - nix-checks
-      # - crafting-interpreter-tests
+      - crafting-interpreter-tests
     steps:
       - name: Decide whether the needed jobs succeeded or failed
         uses: re-actors/alls-green@release/v1

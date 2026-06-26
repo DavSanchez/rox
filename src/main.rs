@@ -12,13 +12,16 @@ fn main() -> ExitCode {
 
     let mut vm = Vm::default();
 
-    let result = match args.len() {
-        1 => repl(&mut vm),
-        2 => run_file(&mut vm, &args[1]),
-        _ => {
-            eprintln!("Usage: rox [path]");
-            return ExitCode::from(64);
-        }
+    let positional: Vec<&String> = args
+        .iter()
+        .enumerate()
+        .filter(|(i, a)| *i > 0 && !a.starts_with("--"))
+        .map(|(_, a)| a)
+        .collect();
+
+    let result = match positional.as_slice() {
+        [] => repl(&mut vm),
+        [path, ..] => run_file(&mut vm, path),
     };
 
     match result {
