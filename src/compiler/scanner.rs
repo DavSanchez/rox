@@ -41,6 +41,7 @@ pub enum TokenType {
     True,
     Var,
     While,
+    Eof,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -235,20 +236,8 @@ impl<'a> Scanner<'a> {
 
         self.make_token(TokenType::Number)
     }
-}
 
-fn is_digit(c: u8) -> bool {
-    c.is_ascii_digit()
-}
-
-fn is_alpha(c: u8) -> bool {
-    c.is_ascii_alphabetic() || c == b'_'
-}
-
-impl<'a> Iterator for Scanner<'a> {
-    type Item = Result<Token<'a>, ScanError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    pub fn scan_token(&mut self) -> Option<Result<Token<'a>, ScanError>> {
         self.skip_whitespace();
         self.start = self.current;
 
@@ -308,6 +297,14 @@ impl<'a> Iterator for Scanner<'a> {
     }
 }
 
+fn is_digit(c: u8) -> bool {
+    c.is_ascii_digit()
+}
+
+fn is_alpha(c: u8) -> bool {
+    c.is_ascii_alphabetic() || c == b'_'
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -315,19 +312,19 @@ mod tests {
     #[test]
     fn empty_source_yields_no_tokens() {
         let mut scanner = Scanner::new("");
-        assert!(scanner.next().is_none());
+        assert!(scanner.scan_token().is_none());
     }
 
     #[test]
     fn whitespace_only_yields_no_tokens() {
         let mut scanner = Scanner::new("   \n\t  \n");
-        assert!(scanner.next().is_none());
+        assert!(scanner.scan_token().is_none());
     }
 
     #[test]
     fn comment_is_skipped() {
         let mut scanner = Scanner::new("// this is a comment\n42");
-        let token = scanner.next().unwrap().unwrap();
+        let token = scanner.scan_token().unwrap().unwrap();
         assert_eq!(token.token_type, TokenType::Number);
         assert_eq!(token.start, "42");
         assert_eq!(token.line, 2);
@@ -350,10 +347,10 @@ mod tests {
             TokenType::Semicolon,
         ];
         for expected_type in expected {
-            let token = scanner.next().unwrap().unwrap();
+            let token = scanner.scan_token().unwrap().unwrap();
             assert_eq!(token.token_type, expected_type);
         }
-        assert!(scanner.next().is_none());
+        assert!(scanner.scan_token().is_none());
     }
 
     #[test]
@@ -370,16 +367,16 @@ mod tests {
             TokenType::Greater,
         ];
         for expected_type in expected {
-            let token = scanner.next().unwrap().unwrap();
+            let token = scanner.scan_token().unwrap().unwrap();
             assert_eq!(token.token_type, expected_type);
         }
-        assert!(scanner.next().is_none());
+        assert!(scanner.scan_token().is_none());
     }
 
     #[test]
     fn number_literal() {
         let mut scanner = Scanner::new("123");
-        let token = scanner.next().unwrap().unwrap();
+        let token = scanner.scan_token().unwrap().unwrap();
         assert_eq!(token.token_type, TokenType::Number);
         assert_eq!(token.start, "123");
     }
@@ -387,7 +384,7 @@ mod tests {
     #[test]
     fn number_with_decimal() {
         let mut scanner = Scanner::new("123.456");
-        let token = scanner.next().unwrap().unwrap();
+        let token = scanner.scan_token().unwrap().unwrap();
         assert_eq!(token.token_type, TokenType::Number);
         assert_eq!(token.start, "123.456");
     }
@@ -395,17 +392,17 @@ mod tests {
     #[test]
     fn number_without_decimal_part() {
         let mut scanner = Scanner::new("123.");
-        let token = scanner.next().unwrap().unwrap();
+        let token = scanner.scan_token().unwrap().unwrap();
         assert_eq!(token.token_type, TokenType::Number);
         assert_eq!(token.start, "123");
-        let next = scanner.next().unwrap().unwrap();
+        let next = scanner.scan_token().unwrap().unwrap();
         assert_eq!(next.token_type, TokenType::Dot);
     }
 
     #[test]
     fn string_literal() {
         let mut scanner = Scanner::new("\"hello\"");
-        let token = scanner.next().unwrap().unwrap();
+        let token = scanner.scan_token().unwrap().unwrap();
         assert_eq!(token.token_type, TokenType::String);
         assert_eq!(token.start, "\"hello\"");
     }
@@ -413,7 +410,7 @@ mod tests {
     #[test]
     fn string_with_newline() {
         let mut scanner = Scanner::new("\"hello\nworld\"");
-        let token = scanner.next().unwrap().unwrap();
+        let token = scanner.scan_token().unwrap().unwrap();
         assert_eq!(token.token_type, TokenType::String);
         assert_eq!(token.start, "\"hello\nworld\"");
         assert_eq!(token.line, 2);
@@ -422,7 +419,7 @@ mod tests {
     #[test]
     fn unterminated_string() {
         let mut scanner = Scanner::new("\"hello");
-        let result = scanner.next().unwrap();
+        let result = scanner.scan_token().unwrap();
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(err.message, "Unterminated string.");
@@ -431,18 +428,21 @@ mod tests {
     #[test]
     fn line_tracking() {
         let mut scanner = Scanner::new("1\n2\n3");
-        let t1 = scanner.next().unwrap().unwrap();
+        let t1 = scanner.scan_token().unwrap().unwrap();
         assert_eq!(t1.line, 1);
-        let t2 = scanner.next().unwrap().unwrap();
+        let t2 = scanner.scan_token().unwrap().unwrap();
         assert_eq!(t2.line, 2);
-        let t3 = scanner.next().unwrap().unwrap();
+        let t3 = scanner.scan_token().unwrap().unwrap();
         assert_eq!(t3.line, 3);
     }
 
     #[test]
     fn test_identifiers() {
-        let scanner = Scanner::new("foo bar_baz _test123");
-        let tokens: Vec<_> = scanner.collect();
+        let mut scanner = Scanner::new("foo bar_baz _test123");
+        let mut tokens = Vec::new();
+        while let Some(result) = scanner.scan_token() {
+            tokens.push(result);
+        }
         assert_eq!(tokens.len(), 3);
         assert!(matches!(
             tokens[0],
@@ -472,7 +472,7 @@ mod tests {
 
     #[test]
     fn test_keywords() {
-        let scanner = Scanner::new(
+        let mut scanner = Scanner::new(
             "and class else false for fun if nil or print return super this true var while",
         );
         let expected = vec![
@@ -493,7 +493,10 @@ mod tests {
             TokenType::Var,
             TokenType::While,
         ];
-        let tokens: Vec<_> = scanner.collect();
+        let mut tokens = Vec::new();
+        while let Some(result) = scanner.scan_token() {
+            tokens.push(result);
+        }
         assert_eq!(tokens.len(), expected.len());
         for (token, expected_type) in tokens.iter().zip(expected.iter()) {
             assert!(matches!(token, Ok(Token { token_type, .. }) if token_type == expected_type));
@@ -502,8 +505,11 @@ mod tests {
 
     #[test]
     fn test_keyword_prefixes_are_identifiers() {
-        let scanner = Scanner::new("andy classy elseif falsehood format funny");
-        let tokens: Vec<_> = scanner.collect();
+        let mut scanner = Scanner::new("andy classy elseif falsehood format funny");
+        let mut tokens = Vec::new();
+        while let Some(result) = scanner.scan_token() {
+            tokens.push(result);
+        }
         assert_eq!(tokens.len(), 6);
         for token in tokens {
             assert!(matches!(
@@ -519,7 +525,7 @@ mod tests {
     #[test]
     fn error_includes_line_number() {
         let mut scanner = Scanner::new("@");
-        if let Some(Err(e)) = scanner.next() {
+        if let Some(Err(e)) = scanner.scan_token() {
             assert_eq!(e.line, 1);
             assert_eq!(e.message, "Unexpected character.");
         } else {
@@ -533,26 +539,30 @@ mod tests {
             message: "Unexpected character.",
             line: 42,
         };
-        assert_eq!(format!("{}", err), "[line 42] Error: Unexpected character.");
+        assert_eq!(err.to_string(), "[line 42] Error: Unexpected character.");
     }
 
     #[test]
-    fn iterator_can_be_used_with_try_for_each() {
+    fn scan_all_tokens_with_loop() {
         let mut scanner = Scanner::new("");
-        let result: Result<(), ScanError> = scanner.try_for_each(|_| Ok(()));
-        assert!(result.is_ok());
+        let mut count = 0;
+        while let Some(result) = scanner.scan_token() {
+            result.unwrap();
+            count += 1;
+        }
+        assert_eq!(count, 0);
     }
 
     #[test]
-    fn iterator_propagates_errors_with_try_for_each() {
+    fn scan_stops_on_first_error() {
         let mut scanner = Scanner::new("@@@");
         let mut count = 0;
-        let result: Result<(), ScanError> = scanner.try_for_each(|item| {
+        while let Some(result) = scanner.scan_token() {
             count += 1;
-            item?;
-            Ok(())
-        });
-        assert!(result.is_err());
+            if result.is_err() {
+                break;
+            }
+        }
         assert_eq!(count, 1);
     }
 }
