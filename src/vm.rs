@@ -39,8 +39,8 @@ impl<W: Write> std::fmt::Debug for Vm<W> {
     }
 }
 
-#[allow(dead_code)]
 impl<W: Write> Vm<W> {
+    #[cfg(test)]
     pub fn with_output(output: W) -> Self {
         Self {
             stack: ValueStack::default(),
@@ -48,6 +48,7 @@ impl<W: Write> Vm<W> {
         }
     }
 
+    #[cfg(test)]
     pub fn into_output(self) -> W {
         self.output
     }
@@ -104,9 +105,4 @@ impl<W: Write> Vm<W> {
         let v1 = self.stack.pop();
         self.stack.push(op(v1, v2));
     }
-}
-
-#[allow(dead_code)]
-pub fn default_output() -> Stdout {
-    io::stdout()
 }
