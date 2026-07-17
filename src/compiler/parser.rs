@@ -348,7 +348,7 @@ impl<'src> Parser<'src> {
             match self.scanner.scan_token() {
                 Some(Ok(token)) => {
                     self.current = token;
-                    return;
+                    break;
                 }
                 Some(Err(err)) => {
                     self.report_scan_error(err);
@@ -359,7 +359,7 @@ impl<'src> Parser<'src> {
                         start: "",
                         line: self.previous.line,
                     };
-                    return;
+                    break;
                 }
             }
         }
@@ -367,10 +367,10 @@ impl<'src> Parser<'src> {
 
     fn consume(&mut self, tt: TokenType, message: &'static str) {
         if self.current.token_type == tt {
-            self.advance();
-            return;
+            self.advance()
+        } else {
+            self.error_at_current(message)
         }
-        self.error_at_current(message);
     }
 
     fn error_at(&mut self, token: &Token<'_>, message: &'static str) {
@@ -466,7 +466,7 @@ impl<'src> Parser<'src> {
 }
 
 fn number<'src>(parser: &mut Parser<'src>) {
-    let value: f64 = parser.previous.start.parse().unwrap_or(0.0);
+    let value: f64 = parser.previous.start.parse().unwrap_or_default();
     parser.emit_constant(value.into());
 }
 

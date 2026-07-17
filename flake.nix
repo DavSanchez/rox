@@ -238,7 +238,6 @@
                   };
                   actionlint.enable = true;
                   convco.enable = true;
-                  gitlint.enable = true;
                   check-merge-conflicts.enable = true;
                   clippy = {
                     enable = true;
