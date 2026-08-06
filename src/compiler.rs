@@ -4,6 +4,8 @@ pub mod scanner;
 
 use std::io;
 
+use crate::array::Array;
+
 pub use parser::ParseError;
 use parser::Parser;
 use scanner::ScanError;
@@ -15,15 +17,17 @@ pub enum CompileError {
     #[error(transparent)]
     Io(#[from] io::Error),
     #[error("Parse error(s):\n{}", format_parse_errors(.0))]
-    Parse(Vec<ParseError>),
+    Parse(Array<ParseError>),
 }
 
-fn format_parse_errors(errors: &[ParseError]) -> String {
-    errors
-        .iter()
-        .map(|e| e.to_string())
-        .collect::<Vec<_>>()
-        .join("\n")
+fn format_parse_errors(errors: &Array<ParseError>) -> String {
+    errors.iter().fold(String::new(), |mut output, error| {
+        if !output.is_empty() {
+            output.push('\n');
+        }
+        output.push_str(&error.to_string());
+        output
+    })
 }
 
 pub fn compile(source: &str) -> Result<crate::vm::chunk::Chunk, CompileError> {
@@ -36,43 +40,43 @@ pub fn compile(source: &str) -> Result<crate::vm::chunk::Chunk, CompileError> {
 
 #[cfg(test)]
 mod tests {
+    use crate::array::Array;
     use crate::vm::Vm;
 
-    fn run_capture(source: &str) -> String {
-        let mut vm = Vm::with_output(Vec::<u8>::new());
+    fn run_capture(source: &str) -> Array<u8> {
+        let mut vm = Vm::with_output(Array::default());
         vm.interpret(source).unwrap();
-        let output = vm.into_output();
-        String::from_utf8(output).unwrap()
+        vm.into_output()
     }
 
     #[test]
     fn evaluate_chapter17_official() {
-        assert_eq!(run_capture("(5 - (3 - 1)) + -1"), "2\n");
+        assert_eq!(&*run_capture("(5 - (3 - 1)) + -1"), b"2\n");
     }
 
     #[test]
     fn unary_binds_tighter_than_add() {
-        assert_eq!(run_capture("-1 + 2"), "1\n");
+        assert_eq!(&*run_capture("-1 + 2"), b"1\n");
     }
 
     #[test]
     fn grouping_respected() {
-        assert_eq!(run_capture("(1 + 2) * 3"), "9\n");
+        assert_eq!(&*run_capture("(1 + 2) * 3"), b"9\n");
     }
 
     #[test]
     fn left_associative_subtraction() {
-        assert_eq!(run_capture("10 - 3 - 2"), "5\n");
+        assert_eq!(&*run_capture("10 - 3 - 2"), b"5\n");
     }
 
     #[test]
     fn division_and_multiplication_same_precedence() {
-        assert_eq!(run_capture("8 / 2 * 4"), "16\n");
+        assert_eq!(&*run_capture("8 / 2 * 4"), b"16\n");
     }
 
     #[test]
     fn parse_error_carries_line_and_message() {
-        let mut vm = Vm::with_output(Vec::<u8>::new());
+        let mut vm = Vm::with_output(Array::default());
         let err = vm.interpret("(1 +").unwrap_err();
         match err {
             crate::vm::error::RoxError::Compile(crate::vm::error::CompileError::Parse(report)) => {

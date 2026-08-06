@@ -1,5 +1,6 @@
 use std::{
     alloc::{self, Layout},
+    io,
     ops::{Deref, DerefMut, Index},
     ptr::{self, NonNull},
 };
@@ -45,6 +46,10 @@ impl<T> Array<T> {
 
     pub fn length(&self) -> usize {
         self.length
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.length == 0
     }
 
     fn grow(&mut self) {
@@ -112,6 +117,19 @@ impl<T> DerefMut for Array<T> {
     }
 }
 
+impl io::Write for Array<u8> {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        for byte in bytes {
+            self.push(*byte);
+        }
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,7 +169,7 @@ mod tests {
 
     proptest! {
         #[test]
-        fn prop_push_and_read(vals in proptest::collection::vec(any::<u8>(), 0..100)) {
+        fn prop_push_and_read(vals in any::<[u8; 100]>()) {
             let mut array = Array::default();
             for val in &vals {
                 array.push(*val);
@@ -165,13 +183,13 @@ mod tests {
         }
 
         #[test]
-        fn prop_push_pop(vals in proptest::collection::vec(any::<u8>(), 0..100)) {
+        fn prop_push_pop(vals in any::<[u8; 100]>()) {
             let mut array = Array::default();
             for val in &vals {
                 array.push(*val);
             }
 
-            let mut reversed = vals.clone();
+            let mut reversed = vals;
             reversed.reverse();
 
             for val in reversed {

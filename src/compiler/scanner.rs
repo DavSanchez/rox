@@ -307,6 +307,8 @@ fn is_alpha(c: u8) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use crate::array::Array;
+
     use super::*;
 
     #[test]
@@ -439,7 +441,7 @@ mod tests {
     #[test]
     fn test_identifiers() {
         let mut scanner = Scanner::new("foo bar_baz _test123");
-        let mut tokens = Vec::new();
+        let mut tokens = Array::default();
         while let Some(result) = scanner.scan_token() {
             tokens.push(result);
         }
@@ -475,7 +477,7 @@ mod tests {
         let mut scanner = Scanner::new(
             "and class else false for fun if nil or print return super this true var while",
         );
-        let expected = vec![
+        let expected = [
             TokenType::And,
             TokenType::Class,
             TokenType::Else,
@@ -493,7 +495,7 @@ mod tests {
             TokenType::Var,
             TokenType::While,
         ];
-        let mut tokens = Vec::new();
+        let mut tokens = Array::default();
         while let Some(result) = scanner.scan_token() {
             tokens.push(result);
         }
@@ -506,12 +508,12 @@ mod tests {
     #[test]
     fn test_keyword_prefixes_are_identifiers() {
         let mut scanner = Scanner::new("andy classy elseif falsehood format funny");
-        let mut tokens = Vec::new();
+        let mut tokens = Array::default();
         while let Some(result) = scanner.scan_token() {
             tokens.push(result);
         }
         assert_eq!(tokens.len(), 6);
-        for token in tokens {
+        for token in tokens.iter() {
             assert!(matches!(
                 token,
                 Ok(Token {

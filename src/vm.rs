@@ -1,4 +1,3 @@
-mod array;
 pub mod chunk;
 pub mod disassembler;
 pub mod error;

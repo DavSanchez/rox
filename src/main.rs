@@ -1,3 +1,4 @@
+mod array;
 mod compiler;
 mod vm;
 
@@ -8,20 +9,12 @@ use vm::Vm;
 use vm::error::RoxError;
 
 fn main() -> ExitCode {
-    let args: Vec<String> = std::env::args().collect();
-
     let mut vm = Vm::default();
 
-    let positional: Vec<&String> = args
-        .iter()
-        .enumerate()
-        .filter(|(i, a)| *i > 0 && !a.starts_with("--"))
-        .map(|(_, a)| a)
-        .collect();
-
-    let result = match positional.as_slice() {
-        [] => repl(&mut vm),
-        [path, ..] => run_file(&mut vm, path),
+    let path = std::env::args().skip(1).find(|arg| !arg.starts_with("--"));
+    let result = match path.as_deref() {
+        None => repl(&mut vm),
+        Some(path) => run_file(&mut vm, path),
     };
 
     match result {

@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+use crate::array::Array;
 use crate::compiler::ParseError;
 use crate::compiler::scanner::ScanError;
 use crate::vm::opcode::UnknownOpcode;
@@ -33,14 +34,16 @@ pub enum CompileError {
 
 #[derive(Debug, Error)]
 #[error("Parse error(s):\n{}", format_parse_errors(.0))]
-pub struct ParseErrorReport(pub Vec<ParseError>);
+pub struct ParseErrorReport(pub Array<ParseError>);
 
-fn format_parse_errors(errors: &[ParseError]) -> String {
-    errors
-        .iter()
-        .map(|e| e.to_string())
-        .collect::<Vec<_>>()
-        .join("\n")
+fn format_parse_errors(errors: &Array<ParseError>) -> String {
+    errors.iter().fold(String::new(), |mut output, error| {
+        if !output.is_empty() {
+            output.push('\n');
+        }
+        output.push_str(&error.to_string());
+        output
+    })
 }
 
 #[derive(Debug, Error)]

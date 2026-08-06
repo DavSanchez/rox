@@ -2,6 +2,7 @@ use std::fmt;
 
 use thiserror::Error;
 
+use crate::array::Array;
 use crate::vm::chunk::Chunk;
 use crate::vm::opcode::OpCode;
 use crate::vm::value::Value;
@@ -305,7 +306,7 @@ pub struct Parser<'src> {
     previous: Token<'src>,
     had_error: bool,
     panic_mode: bool,
-    errors: Vec<ParseError>,
+    errors: Array<ParseError>,
     chunk: Chunk,
     rules: [ParseRule; NUM_TOKEN_TYPES],
 }
@@ -323,13 +324,13 @@ impl<'src> Parser<'src> {
             previous: eof,
             had_error: false,
             panic_mode: false,
-            errors: Vec::new(),
+            errors: Array::default(),
             chunk: Chunk::default(),
             rules: rules(),
         }
     }
 
-    pub fn compile(mut self) -> Result<Chunk, Vec<ParseError>> {
+    pub fn compile(mut self) -> Result<Chunk, Array<ParseError>> {
         self.advance();
         self.expression();
         self.consume(TokenType::Eof, "Expect end of expression.");

@@ -71,6 +71,7 @@ pub enum DisassembleError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::array::Array;
     use crate::vm::opcode::OpCode;
 
     #[test]
@@ -79,10 +80,10 @@ mod tests {
         chunk.write_opcode(OpCode::Return, 123);
 
         let disassembler = Disassembler::new(&chunk, "test");
-        let mut buffer = Vec::new();
+        let mut buffer = Array::default();
         disassembler.write(&mut buffer).unwrap();
 
-        let output = String::from_utf8(buffer).unwrap();
+        let output = std::str::from_utf8(&buffer).unwrap();
         assert!(output.contains("123"));
         assert!(output.contains("OP_RETURN"));
         assert!(output.contains("=="));
@@ -96,10 +97,10 @@ mod tests {
         chunk.write_byte(idx, 100);
 
         let disassembler = Disassembler::new(&chunk, "constant test");
-        let mut buffer = Vec::new();
+        let mut buffer = Array::default();
         disassembler.write(&mut buffer).unwrap();
 
-        let output = String::from_utf8(buffer).unwrap();
+        let output = std::str::from_utf8(&buffer).unwrap();
         assert!(output.contains("OP_CONSTANT"));
         assert!(output.contains("42"));
     }
@@ -120,25 +121,28 @@ mod tests {
         chunk.write_opcode(OpCode::Return, 2);
 
         let disassembler = Disassembler::new(&chunk, "test chunk");
-        let mut buffer = Vec::new();
+        let mut buffer = Array::default();
         disassembler.write(&mut buffer).unwrap();
 
-        let output = String::from_utf8(buffer).unwrap();
-        let lines: Vec<&str> = output.trim().lines().collect();
+        let output = std::str::from_utf8(&buffer).unwrap();
+        let mut lines = output.trim().lines();
 
-        assert_eq!(lines[0], "== test chunk ==");
+        assert_eq!(lines.next(), Some("== test chunk =="));
 
         // 0000    1 OP_CONSTANT         0 '1.2'
-        assert!(lines[1].contains("0000"));
-        assert!(lines[1].contains("1 OP_CONSTANT"));
-        assert!(lines[1].contains("1.2"));
+        let line = lines.next().unwrap();
+        assert!(line.contains("0000"));
+        assert!(line.contains("1 OP_CONSTANT"));
+        assert!(line.contains("1.2"));
 
         // 0002    | OP_RETURN
-        assert!(lines[2].contains("0002"));
-        assert!(lines[2].contains("| OP_RETURN"));
+        let line = lines.next().unwrap();
+        assert!(line.contains("0002"));
+        assert!(line.contains("| OP_RETURN"));
 
         // 0003    2 OP_RETURN
-        assert!(lines[3].contains("0003"));
-        assert!(lines[3].contains("2 OP_RETURN"));
+        let line = lines.next().unwrap();
+        assert!(line.contains("0003"));
+        assert!(line.contains("2 OP_RETURN"));
     }
 }
