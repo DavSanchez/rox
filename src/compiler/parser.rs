@@ -1,7 +1,5 @@
 use std::fmt;
 
-use thiserror::Error;
-
 use crate::array::Array;
 use crate::vm::chunk::Chunk;
 use crate::vm::opcode::OpCode;
@@ -12,11 +10,16 @@ use super::scanner::{ScanError, Scanner, Token, TokenType};
 
 const NUM_TOKEN_TYPES: usize = 39;
 
-#[derive(Debug, Clone, Error)]
-#[error("[line {line}] {message}")]
+#[derive(Debug, Clone)]
 pub struct ParseError {
     pub line: usize,
-    pub message: String,
+    pub message: &'static str,
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[line {}] Error: {}", self.line, self.message)
+    }
 }
 
 type ParseFn = for<'src> fn(&mut Parser<'src>);
@@ -380,16 +383,16 @@ impl<'src> Parser<'src> {
         }
         self.panic_mode = true;
 
-        let location = match token.token_type {
-            TokenType::Eof => " at end".to_string(),
-            _ => format!(" at '{}'", token.start),
-        };
-        let text = format!("Error{location}: {message}");
-
-        eprintln!("[line {}] {text}", token.line);
+        match token.token_type {
+            TokenType::Eof => eprintln!("[line {}] Error at end: {message}", token.line),
+            _ => eprintln!(
+                "[line {}] Error at '{}': {message}",
+                token.line, token.start
+            ),
+        }
         self.errors.push(ParseError {
             line: token.line,
-            message: text,
+            message,
         });
         self.had_error = true;
     }
@@ -409,11 +412,10 @@ impl<'src> Parser<'src> {
             return;
         }
         self.panic_mode = true;
-        let text = format!("Error: {}", err.message);
-        eprintln!("[line {}] {text}", err.line);
+        eprintln!("[line {}] Error: {}", err.line, err.message);
         self.errors.push(ParseError {
             line: err.line,
-            message: text,
+            message: err.message,
         });
         self.had_error = true;
     }
