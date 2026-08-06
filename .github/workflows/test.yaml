@@ -35,7 +35,9 @@ jobs:
       fail-fast: false # for knowing the results of other matrix checks even if some fail
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
-        test-chapter: ["18"]
+        test-chapter:
+          - "17"
+          - "18"
     name: ⚙️ Crafting Interpreters tests (Chapter ${{ matrix.test-chapter }}, ${{ matrix.os }})
     steps:
       - uses: actions/checkout@v7
