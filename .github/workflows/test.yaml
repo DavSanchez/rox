@@ -1,7 +1,9 @@
 name: CI
 run-name: ${{ github.actor }} is testing Rox, his Rust implementation of Lox 🚀
 
-on: [push]
+on:
+  push:
+  pull_request:
 
 permissions:
   contents: write
