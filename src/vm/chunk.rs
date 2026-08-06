@@ -2,9 +2,9 @@ use std::num::TryFromIntError;
 
 use thiserror::Error;
 
-use super::array::Array;
 use super::opcode::OpCode;
 use super::value::Value;
+use crate::array::Array;
 
 #[allow(dead_code)]
 #[derive(Debug, Default)]
@@ -70,7 +70,7 @@ mod tests {
 
     proptest! {
         #[test]
-        fn prop_lines_sync(ops in proptest::collection::vec(any::<u8>(), 0..100)) {
+        fn prop_lines_sync(ops in any::<[u8; 100]>()) {
             let mut chunk = Chunk::default();
             for (i, op) in ops.iter().enumerate() {
                 chunk.write_byte(*op, i);
