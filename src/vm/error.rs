@@ -47,7 +47,11 @@ fn format_parse_errors(errors: &Array<ParseError>) -> String {
 }
 
 #[derive(Debug, Error)]
-pub enum RuntimeError {}
+#[error("{message}\n[line {line}] in script")]
+pub struct RuntimeError {
+    pub message: &'static str,
+    pub line: usize,
+}
 
 impl From<crate::compiler::CompileError> for RoxError {
     fn from(err: crate::compiler::CompileError) -> Self {

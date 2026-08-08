@@ -43,4 +43,13 @@ impl ValueStack {
         self.top -= 1;
         self.slots[self.top]
     }
+
+    pub(super) fn peek(&self, distance: usize) -> Value {
+        debug_assert!(distance < self.top, "stack access out of bounds");
+        self.slots[self.top - 1 - distance]
+    }
+
+    pub(super) fn reset(&mut self) {
+        self.top = 0;
+    }
 }
