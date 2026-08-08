@@ -5,13 +5,11 @@ pub mod opcode;
 mod stack;
 pub mod value;
 
-use std::io::{self, Stdout, Write};
-use std::ops::{Add, Div, Mul, Neg, Sub};
-
 use chunk::Chunk;
-use error::{CompileError, RoxError};
+use error::{CompileError, RoxError, RuntimeError};
 use opcode::OpCode;
 use stack::ValueStack;
+use std::io::{self, Stdout, Write};
 use value::Value;
 
 use crate::compiler;
@@ -69,12 +67,50 @@ impl<W: Write> Vm<W> {
                     self.interpret_return();
                     break Ok(());
                 }
-                OpCode::Negate => self.interpret_negate(),
+                OpCode::Negate => self.interpret_negate(chunk, instruction_pointer)?,
                 OpCode::Constant => self.interpret_constant(&mut instruction_pointer, chunk),
-                OpCode::Add => self.interpret_binary_op(Value::add),
-                OpCode::Subtract => self.interpret_binary_op(Value::sub),
-                OpCode::Multiply => self.interpret_binary_op(Value::mul),
-                OpCode::Divide => self.interpret_binary_op(Value::div),
+                OpCode::Nil => self.stack.push(Value::Nil),
+                OpCode::True => self.stack.push(Value::Bool(true)),
+                OpCode::False => self.stack.push(Value::Bool(false)),
+                OpCode::Not => {
+                    let value = self.stack.pop();
+                    self.stack.push(Value::Bool(value.is_falsey()));
+                }
+                OpCode::Equal => {
+                    let right = self.stack.pop();
+                    let left = self.stack.pop();
+                    self.stack.push(Value::Bool(left.values_equal(right)));
+                }
+                OpCode::Greater => {
+                    self.interpret_binary_op(chunk, instruction_pointer, |left, right| {
+                        Value::Bool(left > right)
+                    })?;
+                }
+                OpCode::Less => {
+                    self.interpret_binary_op(chunk, instruction_pointer, |left, right| {
+                        Value::Bool(left < right)
+                    })?;
+                }
+                OpCode::Add => {
+                    self.interpret_binary_op(chunk, instruction_pointer, |left, right| {
+                        Value::Number(left + right)
+                    })?;
+                }
+                OpCode::Subtract => {
+                    self.interpret_binary_op(chunk, instruction_pointer, |left, right| {
+                        Value::Number(left - right)
+                    })?;
+                }
+                OpCode::Multiply => {
+                    self.interpret_binary_op(chunk, instruction_pointer, |left, right| {
+                        Value::Number(left * right)
+                    })?;
+                }
+                OpCode::Divide => {
+                    self.interpret_binary_op(chunk, instruction_pointer, |left, right| {
+                        Value::Number(left / right)
+                    })?;
+                }
             }
             instruction_pointer += 1;
         }
@@ -85,10 +121,22 @@ impl<W: Write> Vm<W> {
         let _ = writeln!(self.output, "{value}");
     }
 
-    fn interpret_negate(&mut self) {
-        let value = self.stack.pop();
-        let negated = Value::from(f64::from(value).neg());
-        self.stack.push(negated);
+    fn interpret_negate(
+        &mut self,
+        chunk: &Chunk,
+        instruction_pointer: usize,
+    ) -> Result<(), RoxError> {
+        let value = self.stack.peek(0);
+        let Some(number) = value.as_number() else {
+            return Err(self.runtime_error(
+                chunk,
+                instruction_pointer,
+                "Operand must be a number.",
+            ));
+        };
+        self.stack.pop();
+        self.stack.push(Value::Number(-number));
+        Ok(())
     }
 
     fn interpret_constant(&mut self, instruction_pointer: &mut usize, chunk: &Chunk) {
@@ -99,9 +147,38 @@ impl<W: Write> Vm<W> {
         self.stack.push(constant_value);
     }
 
-    fn interpret_binary_op(&mut self, op: impl Fn(Value, Value) -> Value) {
-        let v2 = self.stack.pop();
-        let v1 = self.stack.pop();
-        self.stack.push(op(v1, v2));
+    fn interpret_binary_op(
+        &mut self,
+        chunk: &Chunk,
+        instruction_pointer: usize,
+        op: impl FnOnce(f64, f64) -> Value,
+    ) -> Result<(), RoxError> {
+        let right = self.stack.peek(0);
+        let left = self.stack.peek(1);
+        let (Some(left), Some(right)) = (left.as_number(), right.as_number()) else {
+            return Err(self.runtime_error(
+                chunk,
+                instruction_pointer,
+                "Operands must be numbers.",
+            ));
+        };
+        self.stack.pop();
+        self.stack.pop();
+        self.stack.push(op(left, right));
+        Ok(())
+    }
+
+    fn runtime_error(
+        &mut self,
+        chunk: &Chunk,
+        instruction_pointer: usize,
+        message: &'static str,
+    ) -> RoxError {
+        self.stack.reset();
+        RuntimeError {
+            message,
+            line: chunk.lines[instruction_pointer],
+        }
+        .into()
     }
 }

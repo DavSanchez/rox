@@ -14,7 +14,7 @@ Rust and following (where possible) the C original from the book
 - [x] Chapter 15: A Virtual Machine
 - [x] Chapter 16: Scanning on Demand
 - [x] Chapter 17: Compiling Expressions
-- [ ] Chapter 18: Types of Values
+- [x] Chapter 18: Types of Values
 - [ ] Chapter 19: Strings
 - [ ] Chapter 20: Hash Tables
 - [ ] Chapter 21: Global Variables

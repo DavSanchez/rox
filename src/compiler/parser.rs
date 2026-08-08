@@ -134,15 +134,15 @@ const fn rules() -> [ParseRule; NUM_TOKEN_TYPES] {
         },
         // Bang
         ParseRule {
-            prefix: None,
+            prefix: Some(unary),
             infix: None,
             precedence: Precedence::None,
         },
         // BangEqual
         ParseRule {
             prefix: None,
-            infix: None,
-            precedence: Precedence::None,
+            infix: Some(binary),
+            precedence: Precedence::Equality,
         },
         // Equal
         ParseRule {
@@ -153,32 +153,32 @@ const fn rules() -> [ParseRule; NUM_TOKEN_TYPES] {
         // EqualEqual
         ParseRule {
             prefix: None,
-            infix: None,
-            precedence: Precedence::None,
+            infix: Some(binary),
+            precedence: Precedence::Equality,
         },
         // Greater
         ParseRule {
             prefix: None,
-            infix: None,
-            precedence: Precedence::None,
+            infix: Some(binary),
+            precedence: Precedence::Comparison,
         },
         // GreaterEqual
         ParseRule {
             prefix: None,
-            infix: None,
-            precedence: Precedence::None,
+            infix: Some(binary),
+            precedence: Precedence::Comparison,
         },
         // Less
         ParseRule {
             prefix: None,
-            infix: None,
-            precedence: Precedence::None,
+            infix: Some(binary),
+            precedence: Precedence::Comparison,
         },
         // LessEqual
         ParseRule {
             prefix: None,
-            infix: None,
-            precedence: Precedence::None,
+            infix: Some(binary),
+            precedence: Precedence::Comparison,
         },
         // Identifier
         ParseRule {
@@ -218,7 +218,7 @@ const fn rules() -> [ParseRule; NUM_TOKEN_TYPES] {
         },
         // False
         ParseRule {
-            prefix: None,
+            prefix: Some(literal),
             infix: None,
             precedence: Precedence::None,
         },
@@ -242,7 +242,7 @@ const fn rules() -> [ParseRule; NUM_TOKEN_TYPES] {
         },
         // Nil
         ParseRule {
-            prefix: None,
+            prefix: Some(literal),
             infix: None,
             precedence: Precedence::None,
         },
@@ -278,7 +278,7 @@ const fn rules() -> [ParseRule; NUM_TOKEN_TYPES] {
         },
         // True
         ParseRule {
-            prefix: None,
+            prefix: Some(literal),
             infix: None,
             precedence: Precedence::None,
         },
@@ -425,6 +425,11 @@ impl<'src> Parser<'src> {
         codegen::emit_byte(&mut self.chunk, byte, line);
     }
 
+    fn emit_bytes(&mut self, first: u8, second: u8) {
+        let line = self.previous.line;
+        codegen::emit_bytes(&mut self.chunk, first, second, line);
+    }
+
     fn emit_return(&mut self) {
         let line = self.previous.line;
         codegen::emit_return(&mut self.chunk, line);
@@ -473,6 +478,16 @@ fn number<'src>(parser: &mut Parser<'src>) {
     parser.emit_constant(value.into());
 }
 
+fn literal<'src>(parser: &mut Parser<'src>) {
+    let opcode = match parser.previous.token_type {
+        TokenType::False => OpCode::False,
+        TokenType::Nil => OpCode::Nil,
+        TokenType::True => OpCode::True,
+        _ => return,
+    };
+    parser.emit_byte(opcode as u8);
+}
+
 fn grouping<'src>(parser: &mut Parser<'src>) {
     parser.expression();
     parser.consume(TokenType::RightParen, "Expect ')' after expression.");
@@ -483,9 +498,12 @@ fn unary<'src>(parser: &mut Parser<'src>) {
 
     parser.parse_precedence(Precedence::Unary);
 
-    if operator_type == TokenType::Minus {
-        parser.emit_byte(OpCode::Negate as u8);
-    }
+    let opcode = match operator_type {
+        TokenType::Bang => OpCode::Not,
+        TokenType::Minus => OpCode::Negate,
+        _ => return,
+    };
+    parser.emit_byte(opcode as u8);
 }
 
 fn binary<'src>(parser: &mut Parser<'src>) {
@@ -498,6 +516,12 @@ fn binary<'src>(parser: &mut Parser<'src>) {
         TokenType::Minus => parser.emit_byte(OpCode::Subtract as u8),
         TokenType::Star => parser.emit_byte(OpCode::Multiply as u8),
         TokenType::Slash => parser.emit_byte(OpCode::Divide as u8),
+        TokenType::BangEqual => parser.emit_bytes(OpCode::Equal as u8, OpCode::Not as u8),
+        TokenType::EqualEqual => parser.emit_byte(OpCode::Equal as u8),
+        TokenType::Greater => parser.emit_byte(OpCode::Greater as u8),
+        TokenType::GreaterEqual => parser.emit_bytes(OpCode::Less as u8, OpCode::Not as u8),
+        TokenType::Less => parser.emit_byte(OpCode::Less as u8),
+        TokenType::LessEqual => parser.emit_bytes(OpCode::Greater as u8, OpCode::Not as u8),
         _ => {}
     }
 }
