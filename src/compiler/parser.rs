@@ -474,8 +474,10 @@ impl<'src> Parser<'src> {
 }
 
 fn number<'src>(parser: &mut Parser<'src>) {
-    let value: f64 = parser.previous.start.parse().unwrap_or_default();
-    parser.emit_constant(value.into());
+    match parser.previous.start.parse::<f64>() {
+        Ok(value) => parser.emit_constant(value.into()),
+        Err(_) => parser.error("Invalid number literal."),
+    }
 }
 
 fn literal<'src>(parser: &mut Parser<'src>) {
