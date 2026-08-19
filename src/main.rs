@@ -11,7 +11,10 @@ use vm::error::RoxError;
 fn main() -> ExitCode {
     let mut vm = Vm::default();
 
-    let path = std::env::args().skip(1).find(|arg| !arg.starts_with("--"));
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    vm.set_trace(args.iter().any(|arg| arg == "--trace"));
+
+    let path = args.into_iter().find(|arg| !arg.starts_with("--"));
     let result = match path.as_deref() {
         None => repl(&mut vm),
         Some(path) => run_file(&mut vm, path),
@@ -46,7 +49,9 @@ fn repl(vm: &mut Vm) -> Result<(), RoxError> {
             break;
         }
 
-        vm.interpret(&line)?;
+        if let Err(err) = vm.interpret(&line) {
+            eprintln!("{err}");
+        }
     }
     Ok(())
 }

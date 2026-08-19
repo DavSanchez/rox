@@ -145,4 +145,37 @@ mod tests {
         assert!(line.contains("0003"));
         assert!(line.contains("2 OP_RETURN"));
     }
+
+    #[test]
+    fn test_disassemble_typed_value_instructions() {
+        let mut chunk = Chunk::default();
+        for opcode in [
+            OpCode::Nil,
+            OpCode::True,
+            OpCode::False,
+            OpCode::Not,
+            OpCode::Equal,
+            OpCode::Greater,
+            OpCode::Less,
+        ] {
+            chunk.write_opcode(opcode, 1);
+        }
+
+        let disassembler = Disassembler::new(&chunk, "typed values");
+        let mut buffer = Array::default();
+        disassembler.write(&mut buffer).unwrap();
+        let output = std::str::from_utf8(&buffer).unwrap();
+
+        for opcode in [
+            "OP_NIL",
+            "OP_TRUE",
+            "OP_FALSE",
+            "OP_NOT",
+            "OP_EQUAL",
+            "OP_GREATER",
+            "OP_LESS",
+        ] {
+            assert!(output.contains(opcode));
+        }
+    }
 }
