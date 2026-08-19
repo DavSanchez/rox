@@ -6,6 +6,7 @@ mod stack;
 pub mod value;
 
 use chunk::Chunk;
+use disassembler::Disassembler;
 use error::{CompileError, RoxError, RuntimeError};
 use opcode::OpCode;
 use stack::ValueStack;
@@ -17,6 +18,7 @@ use crate::compiler;
 pub struct Vm<W: Write = Stdout> {
     stack: ValueStack,
     output: W,
+    trace: bool,
 }
 
 impl Default for Vm<Stdout> {
@@ -24,6 +26,7 @@ impl Default for Vm<Stdout> {
         Self {
             stack: ValueStack::default(),
             output: io::stdout(),
+            trace: false,
         }
     }
 }
@@ -42,12 +45,19 @@ impl<W: Write> Vm<W> {
         Self {
             stack: ValueStack::default(),
             output,
+            trace: false,
         }
     }
 
     #[cfg(test)]
     pub fn into_output(self) -> W {
         self.output
+    }
+
+    /// Enables printing the stack and the current instruction before each
+    /// step, mirroring the book's `DEBUG_TRACE_EXECUTION` build flag.
+    pub fn set_trace(&mut self, trace: bool) {
+        self.trace = trace;
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<(), RoxError> {
@@ -59,6 +69,10 @@ impl<W: Write> Vm<W> {
         let mut instruction_pointer = 0usize;
 
         loop {
+            if self.trace {
+                self.trace_instruction(chunk, instruction_pointer);
+            }
+
             let code_u8 = chunk.codes[instruction_pointer];
             let opcode = OpCode::try_from(code_u8).map_err(CompileError::UnknownOpcode)?;
 
@@ -114,6 +128,13 @@ impl<W: Write> Vm<W> {
             }
             instruction_pointer += 1;
         }
+    }
+
+    fn trace_instruction(&self, chunk: &Chunk, instruction_pointer: usize) {
+        let mut stdout = io::stdout();
+        let _ = writeln!(stdout, "{}", self.stack);
+        let disassembler = Disassembler::new(chunk, "trace");
+        let _ = disassembler.disassemble_instruction(&mut stdout, instruction_pointer);
     }
 
     fn interpret_return(&mut self) {
