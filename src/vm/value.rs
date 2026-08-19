@@ -26,12 +26,10 @@ impl Value {
     }
 
     pub fn values_equal(self, other: Self) -> bool {
-        match (self, other) {
-            (Self::Bool(left), Self::Bool(right)) => left == right,
-            (Self::Nil, Self::Nil) => true,
-            (Self::Number(left), Self::Number(right)) => left == right,
-            _ => false,
-        }
+        // `PartialEq` already implements the book's `valuesEqual`: same variant,
+        // and equal payload per that type's own `PartialEq` (so `Number`s compare
+        // like IEEE 754 `f64`, e.g. NaN != NaN).
+        self == other
     }
 }
 
