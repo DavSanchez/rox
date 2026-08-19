@@ -46,7 +46,9 @@ fn repl(vm: &mut Vm) -> Result<(), RoxError> {
             break;
         }
 
-        vm.interpret(&line)?;
+        if let Err(err) = vm.interpret(&line) {
+            eprintln!("{err}");
+        }
     }
     Ok(())
 }
