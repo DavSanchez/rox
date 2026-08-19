@@ -120,9 +120,11 @@ mod tests {
         let mut vm = Vm::with_output(Array::default());
         let err = vm.interpret("(1 +").unwrap_err();
         match err {
-            crate::vm::error::RoxError::Compile(crate::vm::error::CompileError::Parse(report)) => {
-                assert!(!report.0.is_empty());
-                let e = &report.0[0];
+            crate::vm::error::RoxError::Compile(crate::vm::error::CompileError::Compiler(
+                crate::compiler::CompileError::Parse(errors),
+            )) => {
+                assert!(!errors.is_empty());
+                let e = &errors[0];
                 assert_eq!(e.line, 1);
                 assert!(e.message.contains("Expect expression"));
                 assert!(e.to_string().starts_with("[line 1] Error"));
