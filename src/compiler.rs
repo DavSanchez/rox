@@ -108,10 +108,18 @@ mod tests {
             "Operand must be a number.\n[line 1] in script"
         );
 
-        let error = vm.interpret("true + 1").unwrap_err();
+        let error = vm.interpret("true - 1").unwrap_err();
         assert_eq!(
             error.to_string(),
             "Operands must be numbers.\n[line 1] in script"
+        );
+
+        // `+` accepts two numbers or two strings, so mismatched operands get
+        // the book's dedicated message.
+        let error = vm.interpret("true + 1").unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "Operands must be two numbers or two strings.\n[line 1] in script"
         );
     }
 
@@ -131,5 +139,62 @@ mod tests {
             }
             other => panic!("expected Parse error, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn string_literals_are_printed_without_quotes() {
+        assert_eq!(&*run_capture("\"hello\""), b"hello\n");
+        assert_eq!(&*run_capture("\"\""), b"\n");
+    }
+
+    #[test]
+    fn strings_support_non_ascii() {
+        assert_eq!(&*run_capture("\"A~¶Þॐஃ\""), "A~¶Þॐஃ\n".as_bytes());
+    }
+
+    #[test]
+    fn strings_support_newlines() {
+        assert_eq!(&*run_capture("\"1\n2\n3\""), b"1\n2\n3\n");
+    }
+
+    #[test]
+    fn strings_concatenate_with_plus() {
+        assert_eq!(&*run_capture("\"a\" + \"b\""), b"ab\n");
+        assert_eq!(&*run_capture("\"(\" + \"\" + \")\""), b"()\n");
+        assert_eq!(&*run_capture("\"st\" + \"ri\" + \"ng\""), b"string\n");
+    }
+
+    #[test]
+    fn strings_compare_by_contents() {
+        assert_eq!(&*run_capture("\"a\" == \"a\""), b"true\n");
+        assert_eq!(&*run_capture("\"a\" == \"b\""), b"false\n");
+        assert_eq!(&*run_capture("\"a\" != \"b\""), b"true\n");
+        assert_eq!(&*run_capture("\"a\" == 1"), b"false\n");
+    }
+
+    #[test]
+    fn unterminated_string_is_reported() {
+        let mut vm = Vm::with_output(Array::default());
+        let error = vm.interpret("\"hello").unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "Parse error(s):\n[line 1] Error: Unterminated string."
+        );
+    }
+
+    #[test]
+    fn mixing_strings_and_numbers_is_a_runtime_error() {
+        let mut vm = Vm::with_output(Array::default());
+        let error = vm.interpret("\"a\" + 1").unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "Operands must be two numbers or two strings.\n[line 1] in script"
+        );
+
+        let error = vm.interpret("1 + \"a\"").unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "Operands must be two numbers or two strings.\n[line 1] in script"
+        );
     }
 }

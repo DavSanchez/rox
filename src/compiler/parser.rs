@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::array::Array;
 use crate::vm::chunk::Chunk;
+use crate::vm::object::Obj;
 use crate::vm::opcode::OpCode;
 use crate::vm::value::Value;
 
@@ -188,7 +189,7 @@ const fn rules() -> [ParseRule; NUM_TOKEN_TYPES] {
         },
         // String
         ParseRule {
-            prefix: None,
+            prefix: Some(string),
             infix: None,
             precedence: Precedence::None,
         },
@@ -478,6 +479,13 @@ fn number<'src>(parser: &mut Parser<'src>) {
         Ok(value) => parser.emit_constant(value.into()),
         Err(_) => parser.error("Invalid number literal."),
     }
+}
+
+fn string<'src>(parser: &mut Parser<'src>) {
+    // The lexeme includes the surrounding quotation marks, so trim them.
+    let lexeme = parser.previous.start;
+    let chars = &lexeme[1..lexeme.len() - 1];
+    parser.emit_constant(Value::Obj(Obj::copy_string(chars)));
 }
 
 fn literal<'src>(parser: &mut Parser<'src>) {

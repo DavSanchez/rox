@@ -1,6 +1,7 @@
 pub mod chunk;
 pub mod disassembler;
 pub mod error;
+pub mod object;
 pub mod opcode;
 mod stack;
 pub mod value;
@@ -8,6 +9,7 @@ pub mod value;
 use chunk::Chunk;
 use disassembler::Disassembler;
 use error::{CompileError, RoxError, RuntimeError};
+use object::Obj;
 use opcode::OpCode;
 use stack::ValueStack;
 use std::io::{self, Stdout, Write};
@@ -93,7 +95,7 @@ impl<W: Write> Vm<W> {
                 OpCode::Equal => {
                     let right = self.stack.pop();
                     let left = self.stack.pop();
-                    self.stack.push(Value::Bool(left.values_equal(right)));
+                    self.stack.push(Value::Bool(left.values_equal(&right)));
                 }
                 OpCode::Greater => {
                     self.interpret_binary_op(chunk, instruction_pointer, |left, right| {
@@ -106,9 +108,21 @@ impl<W: Write> Vm<W> {
                     })?;
                 }
                 OpCode::Add => {
-                    self.interpret_binary_op(chunk, instruction_pointer, |left, right| {
-                        Value::Number(left + right)
-                    })?;
+                    let right = self.stack.peek(0);
+                    let left = self.stack.peek(1);
+                    if left.is_string() && right.is_string() {
+                        self.concatenate();
+                    } else if left.as_number().is_some() && right.as_number().is_some() {
+                        self.interpret_binary_op(chunk, instruction_pointer, |left, right| {
+                            Value::Number(left + right)
+                        })?;
+                    } else {
+                        return Err(self.runtime_error(
+                            chunk,
+                            instruction_pointer,
+                            "Operands must be two numbers or two strings.",
+                        ));
+                    }
                 }
                 OpCode::Subtract => {
                     self.interpret_binary_op(chunk, instruction_pointer, |left, right| {
@@ -164,8 +178,19 @@ impl<W: Write> Vm<W> {
         // Increment to get constant offset
         *instruction_pointer += 1;
         let constant_index = chunk.codes[*instruction_pointer] as usize;
-        let constant_value = chunk.constants[constant_index];
+        let constant_value = chunk.constants[constant_index].clone();
         self.stack.push(constant_value);
+    }
+
+    fn concatenate(&mut self) {
+        let right = self.stack.pop();
+        let left = self.stack.pop();
+        if let (Some(left), Some(right)) = (left.as_string(), right.as_string()) {
+            let mut chars = String::with_capacity(left.len() + right.len());
+            chars.push_str(left);
+            chars.push_str(right);
+            self.stack.push(Value::Obj(Obj::take_string(chars)));
+        }
     }
 
     fn interpret_binary_op(

@@ -24,7 +24,7 @@ impl fmt::Display for ValueStack {
 impl Default for ValueStack {
     fn default() -> Self {
         Self {
-            slots: [0.0.into(); STACK_MAX],
+            slots: std::array::from_fn(|_| Value::Nil),
             top: 0,
         }
     }
@@ -41,12 +41,12 @@ impl ValueStack {
     pub(super) fn pop(&mut self) -> Value {
         debug_assert!(self.top > 0, "stack underflow");
         self.top -= 1;
-        self.slots[self.top]
+        std::mem::replace(&mut self.slots[self.top], Value::Nil)
     }
 
     pub(super) fn peek(&self, distance: usize) -> Value {
         debug_assert!(distance < self.top, "stack access out of bounds");
-        self.slots[self.top - 1 - distance]
+        self.slots[self.top - 1 - distance].clone()
     }
 
     pub(super) fn reset(&mut self) {
