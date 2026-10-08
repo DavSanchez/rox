@@ -4,6 +4,7 @@ pub mod error;
 pub mod object;
 pub mod opcode;
 mod stack;
+pub mod table;
 pub mod value;
 
 use chunk::Chunk;
@@ -13,12 +14,14 @@ use object::Obj;
 use opcode::OpCode;
 use stack::ValueStack;
 use std::io::{self, Stdout, Write};
+use table::Table;
 use value::Value;
 
 use crate::compiler;
 
 pub struct Vm<W: Write = Stdout> {
     stack: ValueStack,
+    strings: Table,
     output: W,
     trace: bool,
 }
@@ -27,6 +30,7 @@ impl Default for Vm<Stdout> {
     fn default() -> Self {
         Self {
             stack: ValueStack::default(),
+            strings: Table::default(),
             output: io::stdout(),
             trace: false,
         }
@@ -46,6 +50,7 @@ impl<W: Write> Vm<W> {
     pub fn with_output(output: W) -> Self {
         Self {
             stack: ValueStack::default(),
+            strings: Table::default(),
             output,
             trace: false,
         }
@@ -56,6 +61,13 @@ impl<W: Write> Vm<W> {
         self.output
     }
 
+    /// The number of interned strings, exposed so tests can observe that
+    /// literals are deduplicated.
+    #[cfg(test)]
+    pub fn interned_strings(&self) -> usize {
+        self.strings.count()
+    }
+
     /// Enables printing the stack and the current instruction before each
     /// step, mirroring the book's `DEBUG_TRACE_EXECUTION` build flag.
     pub fn set_trace(&mut self, trace: bool) {
@@ -63,7 +75,7 @@ impl<W: Write> Vm<W> {
     }
 
     pub fn interpret(&mut self, source: &str) -> Result<(), RoxError> {
-        let chunk = compiler::compile(source)?;
+        let chunk = compiler::compile(source, &mut self.strings)?;
         self.run(&chunk)
     }
 
@@ -189,7 +201,8 @@ impl<W: Write> Vm<W> {
             let mut chars = String::with_capacity(left.len() + right.len());
             chars.push_str(left);
             chars.push_str(right);
-            self.stack.push(Value::Obj(Obj::take_string(chars)));
+            let string = self.strings.intern_take(chars);
+            self.stack.push(Value::Obj(Obj::from_string(string)));
         }
     }
 
