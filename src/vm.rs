@@ -10,6 +10,7 @@ pub mod value;
 use chunk::Chunk;
 use disassembler::Disassembler;
 use error::{CompileError, RoxError, RuntimeError};
+use object::Obj;
 use opcode::OpCode;
 use stack::ValueStack;
 use std::io::{self, Stdout, Write};
@@ -200,7 +201,8 @@ impl<W: Write> Vm<W> {
             let mut chars = String::with_capacity(left.len() + right.len());
             chars.push_str(left);
             chars.push_str(right);
-            self.stack.push(Value::Obj(self.strings.intern_take(chars)));
+            let string = self.strings.intern_take(chars);
+            self.stack.push(Value::Obj(Obj::from_string(string)));
         }
     }
 

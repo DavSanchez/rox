@@ -16,7 +16,10 @@ pub fn hash_string(key: &str) -> u32 {
 ///
 /// Mirrors the book's `ObjString`: the characters plus a hash code cached the
 /// moment the string is created. Because Lox strings are immutable, the hash
-/// can never go stale.
+/// can never go stale. This is also the key type of every [`Table`], just like
+/// the book's `ObjString*`.
+///
+/// [`Table`]: crate::vm::table::Table
 #[derive(Debug, PartialEq)]
 pub struct ObjString {
     chars: Rc<str>,
@@ -27,6 +30,20 @@ impl ObjString {
     fn new(chars: Rc<str>) -> Self {
         let hash = hash_string(&chars);
         Self { chars, hash }
+    }
+
+    /// Copies the given characters onto the heap, mirroring the book's
+    /// `copyString()`. Used for string literals, whose characters live inside
+    /// the source string.
+    pub fn copy(chars: &str) -> Rc<Self> {
+        Rc::new(Self::new(Rc::from(chars)))
+    }
+
+    /// Takes ownership of the given characters, mirroring the book's
+    /// `takeString()`. Used for strings built at runtime, such as
+    /// concatenations, so their characters are not copied again.
+    pub fn take(chars: String) -> Rc<Self> {
+        Rc::new(Self::new(Rc::from(chars)))
     }
 
     pub fn as_str(&self) -> &str {
@@ -51,22 +68,14 @@ impl Display for ObjString {
 /// functions, closures, classes, and instances.
 #[derive(Debug, PartialEq)]
 pub enum Obj {
-    String(ObjString),
+    String(Rc<ObjString>),
 }
 
 impl Obj {
-    /// Copies the given characters onto the heap, mirroring the book's
-    /// `copyString()`. Used for string literals, whose characters live inside
-    /// the source string.
-    pub fn copy_string(chars: &str) -> Rc<Self> {
-        Rc::new(Self::String(ObjString::new(Rc::from(chars))))
-    }
-
-    /// Takes ownership of the given characters, mirroring the book's
-    /// `takeString()`. Used for strings built at runtime, such as
-    /// concatenations, so their characters are not copied again.
-    pub fn take_string(chars: String) -> Rc<Self> {
-        Rc::new(Self::String(ObjString::new(Rc::from(chars))))
+    /// Wraps an already-allocated string as a value object, like the implicit
+    /// `Obj*` upcast in the book.
+    pub fn from_string(string: Rc<ObjString>) -> Rc<Self> {
+        Rc::new(Self::String(string))
     }
 
     pub fn as_string(&self) -> Option<&str> {
@@ -74,19 +83,12 @@ impl Obj {
             Self::String(string) => Some(string.as_str()),
         }
     }
-
-    /// The cached hash code of this object. Only strings have one for now.
-    pub fn hash(&self) -> u32 {
-        match self {
-            Self::String(string) => string.hash(),
-        }
-    }
 }
 
 impl Display for Obj {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::String(string) => string.fmt(f),
+            Self::String(string) => f.write_str(string.as_str()),
         }
     }
 }
@@ -98,32 +100,32 @@ mod tests {
     #[test]
     fn copy_string_owns_its_characters() {
         let source = String::from("hello");
-        let object = Obj::copy_string(&source);
+        let object = ObjString::copy(&source);
         drop(source);
 
-        assert_eq!(object.as_string(), Some("hello"));
+        assert_eq!(object.as_str(), "hello");
     }
 
     #[test]
     fn take_string_owns_its_characters() {
-        let object = Obj::take_string(String::from("world"));
+        let object = ObjString::take(String::from("world"));
 
-        assert_eq!(object.as_string(), Some("world"));
+        assert_eq!(object.as_str(), "world");
     }
 
     #[test]
     fn strings_compare_by_contents() {
-        assert_eq!(
-            Obj::copy_string("lox"),
-            Obj::take_string(String::from("lox"))
-        );
-        assert_ne!(Obj::copy_string("lox"), Obj::copy_string("clox"));
+        assert_eq!(ObjString::copy("lox"), ObjString::take(String::from("lox")));
+        assert_ne!(ObjString::copy("lox"), ObjString::copy("clox"));
     }
 
     #[test]
     fn displays_characters_without_quotes() {
-        assert_eq!(Obj::copy_string("a string").to_string(), "a string");
-        assert_eq!(Obj::copy_string("").to_string(), "");
+        let object = Obj::from_string(ObjString::copy("a string"));
+        assert_eq!(object.to_string(), "a string");
+
+        let empty = Obj::from_string(ObjString::copy(""));
+        assert_eq!(empty.to_string(), "");
     }
 
     #[test]
@@ -135,18 +137,18 @@ mod tests {
 
     #[test]
     fn strings_cache_their_hash() {
-        let object = Obj::copy_string("lox");
+        let object = ObjString::copy("lox");
         assert_eq!(object.hash(), hash_string("lox"));
 
-        // `take_string` computes the same hash for the same characters.
-        let taken = Obj::take_string(String::from("lox"));
+        // `take` computes the same hash for the same characters.
+        let taken = ObjString::take(String::from("lox"));
         assert_eq!(taken.hash(), hash_string("lox"));
     }
 
     #[test]
     fn hash_handles_non_ascii() {
         let chars = "A~¶Þॐஃ";
-        let object = Obj::copy_string(chars);
+        let object = ObjString::copy(chars);
         assert_eq!(object.hash(), hash_string(chars));
     }
 }

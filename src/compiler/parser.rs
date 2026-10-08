@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::array::Array;
 use crate::vm::chunk::Chunk;
+use crate::vm::object::Obj;
 use crate::vm::opcode::OpCode;
 use crate::vm::table::Table;
 use crate::vm::value::Value;
@@ -487,8 +488,8 @@ fn string<'src>(parser: &mut Parser<'src>) {
     // The lexeme includes the surrounding quotation marks, so trim them.
     let lexeme = parser.previous.start;
     let chars = &lexeme[1..lexeme.len() - 1];
-    let object = parser.strings.intern(chars);
-    parser.emit_constant(Value::Obj(object));
+    let string = parser.strings.intern(chars);
+    parser.emit_constant(Value::Obj(Obj::from_string(string)));
 }
 
 fn literal<'src>(parser: &mut Parser<'src>) {

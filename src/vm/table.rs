@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use super::object::{Obj, hash_string};
+use super::object::{ObjString, hash_string};
 use super::value::Value;
 use crate::array::Array;
 
@@ -16,13 +16,15 @@ fn grow_capacity(capacity: usize) -> usize {
 /// A single bucket in a [`Table`].
 ///
 /// The book tells empty buckets and tombstones apart using a `NULL` key plus a
-/// `nil`/`true` value. An enum makes that distinction explicit.
+/// `nil`/`true` value. An enum makes that distinction explicit. Keys are always
+/// strings, so the entry stores an [`ObjString`] directly, like the book's
+/// `ObjString* key`.
 #[allow(dead_code)]
 #[derive(Debug)]
 enum Entry {
     Empty,
     Tombstone,
-    Occupied(Rc<Obj>, Value),
+    Occupied(Rc<ObjString>, Value),
 }
 
 /// A string-keyed hash table, mirroring the book's `Table`.
@@ -47,7 +49,7 @@ impl Table {
 
     /// Adds or overwrites the entry for `key`, mirroring the book's
     /// `tableSet()`. Returns `true` when a new key was added.
-    pub fn set(&mut self, key: Rc<Obj>, value: Value) -> bool {
+    pub fn set(&mut self, key: Rc<ObjString>, value: Value) -> bool {
         if (self.count + 1) as f64 > self.capacity as f64 * TABLE_MAX_LOAD {
             let capacity = grow_capacity(self.capacity);
             self.adjust_capacity(capacity);
@@ -63,7 +65,7 @@ impl Table {
     }
 
     /// Looks up the value for `key`, mirroring the book's `tableGet()`.
-    pub fn get(&self, key: &Rc<Obj>) -> Option<&Value> {
+    pub fn get(&self, key: &Rc<ObjString>) -> Option<&Value> {
         if self.count == 0 {
             return None;
         }
@@ -77,7 +79,7 @@ impl Table {
 
     /// Removes the entry for `key` by leaving a tombstone, mirroring the book's
     /// `tableDelete()`. Returns `true` when an entry was removed.
-    pub fn delete(&mut self, key: &Rc<Obj>) -> bool {
+    pub fn delete(&mut self, key: &Rc<ObjString>) -> bool {
         if self.count == 0 {
             return false;
         }
@@ -105,8 +107,8 @@ impl Table {
     ///
     /// Mirrors the book's `tableFindString()`. Unlike [`Table::set`] and
     /// [`Table::get`], this compares characters so a string can be deduplicated
-    /// *before* an [`Obj`] is allocated for it.
-    pub fn find_string(&self, chars: &str, hash: u32) -> Option<Rc<Obj>> {
+    /// *before* an [`ObjString`] is allocated for it.
+    pub fn find_string(&self, chars: &str, hash: u32) -> Option<Rc<ObjString>> {
         if self.count == 0 {
             return None;
         }
@@ -116,11 +118,7 @@ impl Table {
             match &self.entries[index] {
                 Entry::Empty => return None,
                 Entry::Occupied(key, _) => {
-                    if let Some(existing) = key.as_string()
-                        && existing.len() == chars.len()
-                        && key.hash() == hash
-                        && existing == chars
-                    {
+                    if key.hash() == hash && key.as_str() == chars {
                         return Some(key.clone());
                     }
                 }
@@ -133,28 +131,28 @@ impl Table {
     /// Interns the given characters, reusing an existing string if present.
     ///
     /// Mirrors the book's `copyString()`.
-    pub fn intern(&mut self, chars: &str) -> Rc<Obj> {
+    pub fn intern(&mut self, chars: &str) -> Rc<ObjString> {
         let hash = hash_string(chars);
         if let Some(interned) = self.find_string(chars, hash) {
             return interned;
         }
 
-        let object = Obj::copy_string(chars);
-        self.set(object.clone(), Value::Nil);
-        object
+        let string = ObjString::copy(chars);
+        self.set(string.clone(), Value::Nil);
+        string
     }
 
     /// Interns characters owned by the caller, reusing an existing string if
     /// present. Mirrors the book's `takeString()`.
-    pub fn intern_take(&mut self, chars: String) -> Rc<Obj> {
+    pub fn intern_take(&mut self, chars: String) -> Rc<ObjString> {
         let hash = hash_string(&chars);
         if let Some(interned) = self.find_string(&chars, hash) {
             return interned;
         }
 
-        let object = Obj::take_string(chars);
-        self.set(object.clone(), Value::Nil);
-        object
+        let string = ObjString::take(chars);
+        self.set(string.clone(), Value::Nil);
+        string
     }
 
     /// Rebuilds the bucket array at `capacity`, mirroring the book's
@@ -185,7 +183,7 @@ impl Table {
 ///
 /// Collisions are resolved by linear probing. The returned slot is either empty,
 /// a reusable tombstone, or the entry that already holds `key`.
-fn find_entry(entries: &[Entry], capacity: usize, key: &Rc<Obj>) -> usize {
+fn find_entry(entries: &[Entry], capacity: usize, key: &Rc<ObjString>) -> usize {
     let mut index = key.hash() as usize % capacity;
     let mut tombstone: Option<usize> = None;
 
@@ -212,16 +210,13 @@ mod tests {
     use super::*;
 
     /// Finds two distinct keys whose hashes land in the same bucket.
-    fn find_collision(capacity: usize) -> (Rc<Obj>, Rc<Obj>) {
+    fn find_collision(capacity: usize) -> (Rc<ObjString>, Rc<ObjString>) {
         let mut seen: std::collections::HashMap<usize, String> = std::collections::HashMap::new();
         for i in 0.. {
             let chars = format!("key{i}");
             let bucket = hash_string(&chars) as usize % capacity;
             if let Some(previous) = seen.get(&bucket) {
-                return (
-                    Obj::copy_string(previous.as_str()),
-                    Obj::copy_string(&chars),
-                );
+                return (ObjString::copy(previous), ObjString::copy(&chars));
             }
             seen.insert(bucket, chars);
         }
@@ -230,7 +225,7 @@ mod tests {
 
     #[test]
     fn set_stores_and_overwrites() {
-        let key = Obj::copy_string("lox");
+        let key = ObjString::copy("lox");
         let mut table = Table::default();
 
         assert!(table.set(key.clone(), Value::Number(1.0)));
@@ -246,17 +241,17 @@ mod tests {
     #[test]
     fn get_missing_key_returns_none() {
         let mut table = Table::default();
-        assert!(table.get(&Obj::copy_string("missing")).is_none());
+        assert!(table.get(&ObjString::copy("missing")).is_none());
 
-        table.set(Obj::copy_string("lox"), Value::Number(1.0));
-        assert!(table.get(&Obj::copy_string("missing")).is_none());
+        table.set(ObjString::copy("lox"), Value::Number(1.0));
+        assert!(table.get(&ObjString::copy("missing")).is_none());
     }
 
     #[test]
     fn resize_preserves_every_entry() {
         let mut table = Table::default();
-        let keys: Vec<Rc<Obj>> = (0..100)
-            .map(|i| Obj::copy_string(&format!("key{i}")))
+        let keys: Vec<Rc<ObjString>> = (0..100)
+            .map(|i| ObjString::copy(&format!("key{i}")))
             .collect();
 
         for (i, key) in keys.iter().enumerate() {
@@ -272,7 +267,7 @@ mod tests {
     #[test]
     fn delete_missing_key_returns_false() {
         let mut table = Table::default();
-        assert!(!table.delete(&Obj::copy_string("missing")));
+        assert!(!table.delete(&ObjString::copy("missing")));
     }
 
     #[test]
@@ -300,7 +295,7 @@ mod tests {
         let count_after_delete = table.count();
 
         // The tombstone left by `first` should be reused, not counted again.
-        let replacement = Obj::copy_string("replacement");
+        let replacement = ObjString::copy("replacement");
         table.set(replacement.clone(), Value::Number(3.0));
         assert!(table.get(&replacement).is_some());
         assert_eq!(table.count(), count_after_delete + 1);
@@ -334,7 +329,7 @@ mod tests {
 
     #[test]
     fn add_all_copies_entries() {
-        let key = Obj::copy_string("lox");
+        let key = ObjString::copy("lox");
         let mut from = Table::default();
         from.set(key.clone(), Value::Number(1.0));
 
