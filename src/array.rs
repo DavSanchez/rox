@@ -1,7 +1,7 @@
 use std::{
     alloc::{self, Layout},
     io,
-    ops::{Deref, DerefMut, Index},
+    ops::{Deref, DerefMut, Index, IndexMut},
     ptr::{self, NonNull},
 };
 
@@ -88,6 +88,13 @@ impl<T> Index<usize> for Array<T> {
         assert!(index < self.length, "Index out of bounds");
         // We do not use `ptr::read` here because we want to return a reference.
         unsafe { &*self.ptr.as_ptr().add(index) }
+    }
+}
+
+impl<T> IndexMut<usize> for Array<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        assert!(index < self.length, "Index out of bounds");
+        unsafe { &mut *self.ptr.as_ptr().add(index) }
     }
 }
 

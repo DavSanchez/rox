@@ -2,8 +2,8 @@ use std::fmt;
 
 use crate::array::Array;
 use crate::vm::chunk::Chunk;
-use crate::vm::object::Obj;
 use crate::vm::opcode::OpCode;
+use crate::vm::table::Table;
 use crate::vm::value::Value;
 
 use super::codegen;
@@ -312,11 +312,12 @@ pub struct Parser<'src> {
     panic_mode: bool,
     errors: Array<ParseError>,
     chunk: Chunk,
+    strings: &'src mut Table,
     rules: [ParseRule; NUM_TOKEN_TYPES],
 }
 
 impl<'src> Parser<'src> {
-    pub fn new(source: &'src str) -> Self {
+    pub fn new(source: &'src str, strings: &'src mut Table) -> Self {
         let eof = Token {
             token_type: TokenType::Eof,
             start: "",
@@ -330,6 +331,7 @@ impl<'src> Parser<'src> {
             panic_mode: false,
             errors: Array::default(),
             chunk: Chunk::default(),
+            strings,
             rules: rules(),
         }
     }
@@ -485,7 +487,8 @@ fn string<'src>(parser: &mut Parser<'src>) {
     // The lexeme includes the surrounding quotation marks, so trim them.
     let lexeme = parser.previous.start;
     let chars = &lexeme[1..lexeme.len() - 1];
-    parser.emit_constant(Value::Obj(Obj::copy_string(chars)));
+    let object = parser.strings.intern(chars);
+    parser.emit_constant(Value::Obj(object));
 }
 
 fn literal<'src>(parser: &mut Parser<'src>) {
