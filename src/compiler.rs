@@ -5,6 +5,7 @@ pub mod scanner;
 use std::io;
 
 use crate::array::Array;
+use crate::vm::table::Table;
 
 pub use parser::ParseError;
 use parser::Parser;
@@ -30,8 +31,8 @@ fn format_parse_errors(errors: &Array<ParseError>) -> String {
     })
 }
 
-pub fn compile(source: &str) -> Result<crate::vm::chunk::Chunk, CompileError> {
-    let parser = Parser::new(source);
+pub fn compile(source: &str, strings: &mut Table) -> Result<crate::vm::chunk::Chunk, CompileError> {
+    let parser = Parser::new(source, strings);
     match parser.compile() {
         Ok(chunk) => Ok(chunk),
         Err(errors) => Err(CompileError::Parse(errors)),
@@ -196,5 +197,15 @@ mod tests {
             error.to_string(),
             "Operands must be two numbers or two strings.\n[line 1] in script"
         );
+    }
+
+    #[test]
+    fn string_literals_are_interned() {
+        let mut vm = Vm::with_output(Array::default());
+        vm.interpret("\"a\" + \"a\"").unwrap();
+
+        // The two `"a"` literals collapse to one interned string, and the
+        // concatenation adds the distinct `"aa"`.
+        assert_eq!(vm.interned_strings(), 2);
     }
 }

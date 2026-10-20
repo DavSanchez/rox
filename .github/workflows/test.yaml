@@ -39,6 +39,7 @@ jobs:
           - "17"
           - "18"
           - "19"
+          - "20"
     name: ⚙️ Crafting Interpreters tests (Chapter ${{ matrix.test-chapter }}, ${{ matrix.os }})
     steps:
       - uses: actions/checkout@v7

@@ -62,6 +62,11 @@ impl Display for Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::vm::object::ObjString;
+
+    fn string(chars: &str) -> Value {
+        Value::Obj(Obj::from_string(ObjString::copy(chars)))
+    }
 
     #[test]
     fn displays_each_type() {
@@ -69,7 +74,7 @@ mod tests {
         assert_eq!(Value::Bool(false).to_string(), "false");
         assert_eq!(Value::Nil.to_string(), "nil");
         assert_eq!(Value::Number(1.5).to_string(), "1.5");
-        assert_eq!(Value::Obj(Obj::copy_string("lox")).to_string(), "lox");
+        assert_eq!(string("lox").to_string(), "lox");
     }
 
     #[test]
@@ -78,7 +83,7 @@ mod tests {
         assert!(Value::Bool(false).is_falsey());
         assert!(!Value::Bool(true).is_falsey());
         assert!(!Value::Number(0.0).is_falsey());
-        assert!(!Value::Obj(Obj::copy_string("")).is_falsey());
+        assert!(!string("").is_falsey());
     }
 
     #[test]
@@ -92,9 +97,9 @@ mod tests {
 
     #[test]
     fn strings_compare_by_contents() {
-        let left = Value::Obj(Obj::copy_string("lox"));
-        let right = Value::Obj(Obj::take_string(String::from("lox")));
-        let different = Value::Obj(Obj::copy_string("clox"));
+        let left = string("lox");
+        let right = string("lox");
+        let different = string("clox");
 
         assert!(left.values_equal(&right));
         assert!(!left.values_equal(&different));
@@ -105,8 +110,8 @@ mod tests {
     fn exposes_underlying_values() {
         assert_eq!(Value::Number(1.5).as_number(), Some(1.5));
         assert_eq!(Value::Nil.as_number(), None);
-        assert!(Value::Obj(Obj::copy_string("lox")).is_string());
-        assert_eq!(Value::Obj(Obj::copy_string("lox")).as_string(), Some("lox"));
+        assert!(string("lox").is_string());
+        assert_eq!(string("lox").as_string(), Some("lox"));
         assert_eq!(Value::Number(1.0).as_string(), None);
     }
 }
